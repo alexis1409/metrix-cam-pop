@@ -13,6 +13,15 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+
+  /// Returns true if this is an authentication error (401 or 403)
+  bool get isAuthError => statusCode == 401 || statusCode == 403;
+}
+
+/// Specific exception for authentication errors
+class AuthenticationException extends ApiException {
+  AuthenticationException([String message = 'Sesión expirada. Inicia sesión de nuevo.'])
+      : super(message, statusCode: 401);
 }
 
 class ApiService {
@@ -20,7 +29,11 @@ class ApiService {
 
   void setToken(String? token) {
     _token = token;
+    debugPrint('🔑 [ApiService] Token ${token != null ? "establecido" : "eliminado"}');
   }
+
+  /// Returns true if a token is set
+  bool get hasToken => _token != null && _token!.isNotEmpty;
 
   Map<String, String> get _headers {
     final headers = {
@@ -66,24 +79,40 @@ class ApiService {
 
   Future<List<dynamic>> getList(String endpoint) async {
     try {
+      final url = '${ApiConfig.baseUrl}$endpoint';
+      debugPrint('📡 [ApiService] GET List: $url');
+      debugPrint('📡 [ApiService] Headers: ${_headers.keys.join(', ')}');
+
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}$endpoint'),
+        Uri.parse(url),
         headers: _headers,
       );
+
+      debugPrint('📡 [ApiService] Response status: ${response.statusCode}');
 
       final body = jsonDecode(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return body is List ? body : (body['data'] ?? []);
+        final result = body is List ? body : (body['data'] ?? []);
+        debugPrint('📡 [ApiService] Success: ${result.length} items');
+        return result;
       }
 
       final message = body['message'] ?? 'Error desconocido';
+      debugPrint('❌ [ApiService] Error ${response.statusCode}: $message');
+
+      // Check for authentication errors
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw AuthenticationException();
+      }
+
       throw ApiException(
         message is List ? message.join(', ') : message.toString(),
         statusCode: response.statusCode,
       );
     } catch (e) {
       if (e is ApiException) rethrow;
+      debugPrint('❌ [ApiService] Connection error: $e');
       throw ApiException('Error de conexión: $e');
     }
   }
@@ -187,6 +216,12 @@ class ApiService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body is Map<String, dynamic> ? body : {'data': body};
+    }
+
+    // Check for authentication errors
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      debugPrint('⚠️ [ApiService] Authentication error detected');
+      throw AuthenticationException();
     }
 
     final message = body['message'] ?? 'Error desconocido';

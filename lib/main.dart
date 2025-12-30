@@ -12,6 +12,7 @@ import 'providers/connectivity_provider.dart';
 import 'providers/sync_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/retailtainment_provider.dart';
+import 'providers/demostrador_provider.dart';
 import 'repositories/pending_operation_repository.dart';
 import 'repositories/sync_metadata_repository.dart';
 import 'repositories/tiendas_cache_repository.dart';
@@ -33,6 +34,7 @@ import 'screens/campanias/tienda_campanias_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/retailtainment/retailtainment_list_screen.dart';
 import 'screens/retailtainment/retailtainment_home_screen.dart';
+import 'screens/demostrador/demostrador_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -143,6 +145,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => RetailtainmentProvider(apiService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => DemostradorProvider(apiService),
+        ),
       ],
       child: MaterialApp(
         title: 'Metrix CAM',
@@ -158,6 +163,7 @@ class MyApp extends StatelessWidget {
           '/notifications': (context) => const NotificationCenterScreen(),
           '/retailtainment': (context) => const RetailtainmentListScreen(),
           '/retailtainment-home': (context) => const RetailtainmentHomeScreen(),
+          '/demostrador': (context) => const DemostradorHomeScreen(),
         },
       ),
     );

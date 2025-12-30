@@ -62,7 +62,13 @@ class _SplashScreenState extends State<SplashScreen>
       final user = authProvider.user;
       // Redirect based on role
       if (user != null && user.isRetailtainmentOnly) {
-        Navigator.of(context).pushReplacementNamed('/retailtainment-home');
+        // Impulsadores van a la pantalla de demostrador (asignaciones RTMT)
+        // Supervisores van a retailtainment-home (campañas)
+        if (user.isImpulsador) {
+          Navigator.of(context).pushReplacementNamed('/demostrador');
+        } else {
+          Navigator.of(context).pushReplacementNamed('/retailtainment-home');
+        }
       } else {
         Navigator.of(context).pushReplacementNamed('/home');
       }

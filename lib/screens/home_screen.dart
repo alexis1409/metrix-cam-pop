@@ -99,6 +99,25 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 48),
 
+              // Botón de Demostrador (para impulsador y supervisor)
+              if (user?.role == 'impulsador' || user?.role == 'supervisor_retailtainment') ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/demostrador');
+                    },
+                    icon: const Icon(Icons.storefront),
+                    label: const Text('Mis Actividades'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.green,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Botón de Campañas
               SizedBox(
                 width: double.infinity,
@@ -130,6 +149,10 @@ class HomeScreen extends StatelessWidget {
         return 'Admin Agencia';
       case 'instalador':
         return 'Instalador';
+      case 'impulsador':
+        return 'Impulsador';
+      case 'supervisor_retailtainment':
+        return 'Supervisor RTMT';
       default:
         return 'Usuario';
     }
@@ -145,6 +168,10 @@ class HomeScreen extends StatelessWidget {
         return Colors.teal;
       case 'instalador':
         return Colors.orange;
+      case 'impulsador':
+        return Colors.green;
+      case 'supervisor_retailtainment':
+        return Colors.deepOrange;
       default:
         return Colors.grey;
     }
