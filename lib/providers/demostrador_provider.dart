@@ -146,6 +146,8 @@ class DemostradorProvider extends ChangeNotifier {
     Ubicacion? ubicacion,
     String? notas,
     String? productoUpc,
+    String? marcaId,
+    String? marcaNombre,
   }) async {
     if (_asignacionActual == null) {
       _errorMessage = 'No hay asignación seleccionada';
@@ -167,6 +169,8 @@ class DemostradorProvider extends ChangeNotifier {
           ubicacion: ubicacion,
           notas: notas,
           productoUpc: productoUpc,
+          marcaId: marcaId,
+          marcaNombre: marcaNombre,
         );
       } else {
         result = await _service.registrarMomento(
@@ -175,6 +179,8 @@ class DemostradorProvider extends ChangeNotifier {
           ubicacion: ubicacion,
           notas: notas,
           productoUpc: productoUpc,
+          marcaId: marcaId,
+          marcaNombre: marcaNombre,
         );
       }
 

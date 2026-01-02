@@ -49,20 +49,39 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuth() async {
+    debugPrint('>>> SplashScreen: Starting auth check...');
     await Future.delayed(const Duration(milliseconds: 1500));
 
-    if (!mounted) return;
+    if (!mounted) {
+      debugPrint('>>> SplashScreen: Not mounted after delay');
+      return;
+    }
 
-    final authProvider = context.read<AuthProvider>();
-    await authProvider.checkAuthStatus();
+    try {
+      debugPrint('>>> SplashScreen: Checking auth status...');
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.checkAuthStatus();
 
-    if (!mounted) return;
+      if (!mounted) {
+        debugPrint('>>> SplashScreen: Not mounted after auth check');
+        return;
+      }
 
-    if (authProvider.isAuthenticated) {
-      // Todos los usuarios autenticados van a la pantalla de impulsador
-      Navigator.of(context).pushReplacementNamed('/impulsador');
-    } else {
-      Navigator.of(context).pushReplacementNamed('/login');
+      debugPrint('>>> SplashScreen: isAuthenticated = ${authProvider.isAuthenticated}');
+      if (authProvider.isAuthenticated) {
+        debugPrint('>>> SplashScreen: Navigating to /impulsador');
+        Navigator.of(context).pushReplacementNamed('/impulsador');
+      } else {
+        debugPrint('>>> SplashScreen: Navigating to /login');
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e, stack) {
+      debugPrint('>>> SplashScreen ERROR: $e');
+      debugPrint('>>> Stack: $stack');
+      // En caso de error, ir a login
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     }
   }
 
@@ -84,15 +103,13 @@ class _SplashScreenState extends State<SplashScreen>
           child: Center(
             child: AnimatedBuilder(
               animation: _animationController,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _opacityAnimation.value,
-                  child: Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: child,
-                  ),
-                );
-              },
+              builder: (context, child) => Opacity(
+                opacity: _opacityAnimation.value,
+                child: Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: child,
+                ),
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -238,6 +238,12 @@ class DemostradorDetailScreen extends StatelessWidget {
     bool canAdvance,
     DemostradorProvider provider,
   ) {
+    final asignacion = provider.asignacionActual;
+    // Verificar si el cierre esta bloqueado por tiempo
+    final cierreBloqueadoPorTiempo = momento == MomentoRTMT.cierreActividades &&
+        asignacion != null &&
+        asignacion.cierreBloqueadoPorTiempo;
+
     Color statusColor;
     IconData statusIcon;
     String statusText;
@@ -250,6 +256,10 @@ class DemostradorDetailScreen extends StatelessWidget {
       statusColor = Colors.green;
       statusIcon = Icons.check_circle;
       statusText = 'Completado';
+    } else if (cierreBloqueadoPorTiempo) {
+      statusColor = Colors.amber;
+      statusIcon = Icons.schedule;
+      statusText = 'Esperando hora';
     } else if (canAdvance) {
       statusColor = Colors.blue;
       statusIcon = Icons.play_circle;
@@ -266,7 +276,9 @@ class DemostradorDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: canAdvance && !registro.completada
             ? BorderSide(color: Colors.blue, width: 2)
-            : BorderSide.none,
+            : (cierreBloqueadoPorTiempo
+                ? BorderSide(color: Colors.amber, width: 2)
+                : BorderSide.none),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -324,6 +336,32 @@ class DemostradorDetailScreen extends StatelessWidget {
                         ],
                       ],
                     ),
+                    // Mostrar mensaje de cuando se habilita el cierre
+                    if (cierreBloqueadoPorTiempo) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.access_time, size: 12, color: Colors.amber[800]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Se habilita a las ${asignacion.actividad?.horaHabilitaCierreFormateada ?? ""}',
+                              style: TextStyle(
+                                color: Colors.amber[800],
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

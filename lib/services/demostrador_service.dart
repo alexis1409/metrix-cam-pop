@@ -96,6 +96,8 @@ class DemostradorService {
     Ubicacion? ubicacion,
     String? notas,
     String? productoUpc,
+    String? marcaId,
+    String? marcaNombre,
   }) async {
     try {
       debugPrint('📋 [DemostradorService] Registering moment: ${momento.value}');
@@ -109,6 +111,8 @@ class DemostradorService {
       if (ubicacion != null) body['ubicacion'] = ubicacion.toJson();
       if (notas != null) body['notas'] = notas;
       if (productoUpc != null) body['productoUpc'] = productoUpc;
+      if (marcaId != null) body['marcaId'] = marcaId;
+      if (marcaNombre != null) body['marcaNombre'] = marcaNombre;
 
       final response = await _apiService.post(
         '/asignaciones-unified/$asignacionId/momento-rtmt',
@@ -162,6 +166,8 @@ class DemostradorService {
     Ubicacion? ubicacion,
     String? notas,
     String? productoUpc,
+    String? marcaId,
+    String? marcaNombre,
   }) async {
     final base64 = await convertImageToBase64(foto);
     return registrarMomento(
@@ -171,6 +177,8 @@ class DemostradorService {
       ubicacion: ubicacion,
       notas: notas,
       productoUpc: productoUpc,
+      marcaId: marcaId,
+      marcaNombre: marcaNombre,
     );
   }
 

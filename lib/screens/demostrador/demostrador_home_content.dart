@@ -5,6 +5,7 @@ import '../../models/asignacion_rtmt.dart';
 import '../../providers/demostrador_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'demostrador_detail_screen.dart';
+import 'asignacion_resumen_screen.dart';
 
 /// Content widget for Demostrador Home - to be used inside a tab/indexed stack
 class DemostradorHomeContent extends StatefulWidget {
@@ -69,15 +70,27 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
               return _buildErrorState(provider.errorMessage!);
             }
 
-            // Separate active and completed
+            // Separar activas, próximas y terminadas
+            // Activas: solo asignaciones de HOY
             final asignacionesActivas = provider.asignacionesHoy
-                .where((a) =>
-                    a.estado == EstadoAsignacion.pendiente ||
-                    a.estado == EstadoAsignacion.enProgreso ||
-                    a.estado == EstadoAsignacion.incidencia)
+                .where((a) => a.estaActiva)
                 .toList();
+            // Próximas: asignaciones de días FUTUROS
+            final asignacionesProximas = provider.asignacionesHoy
+                .where((a) => a.esProxima)
+                .toList()
+              ..sort((a, b) {
+                // Ordenar por fecha ascendente
+                final fechaA = a.actividad?.fechaDate;
+                final fechaB = b.actividad?.fechaDate;
+                if (fechaA == null && fechaB == null) return 0;
+                if (fechaA == null) return 1;
+                if (fechaB == null) return -1;
+                return fechaA.compareTo(fechaB);
+              });
+            // Terminadas: solo asignaciones de dias PASADOS
             final asignacionesTerminadas = provider.asignacionesHoy
-                .where((a) => a.estado == EstadoAsignacion.completada)
+                .where((a) => a.estaTerminada)
                 .toList();
 
             return RefreshIndicator(
@@ -146,7 +159,7 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildAsignacionesList(asignacionesActivas, true),
+                        _buildActivasConProximas(asignacionesActivas, asignacionesProximas),
                         _buildAsignacionesList(asignacionesTerminadas, false),
                       ],
                     ),
@@ -191,6 +204,100 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
           ],
         ),
       ),
+    );
+  }
+
+  /// Construye la lista de activas con sección de próximas
+  Widget _buildActivasConProximas(
+    List<AsignacionRTMT> activas,
+    List<AsignacionRTMT> proximas,
+  ) {
+    if (activas.isEmpty && proximas.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('📋', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 16),
+            const Text(
+              'Sin actividades',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No tienes actividades pendientes',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+      children: [
+        // Sección: Activas (hoy)
+        if (activas.isNotEmpty) ...[
+          ...activas.map((a) => _buildAsignacionCard(a)),
+        ] else ...[
+          // Mensaje si no hay activas hoy
+          Container(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[400]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No tienes actividades para hoy',
+                    style: TextStyle(color: Colors.blue[700]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Sección: Próximas
+        if (proximas.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.schedule, color: Colors.orange[700], size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Próximas (${proximas.length})',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...proximas.map((a) => _buildAsignacionCardProxima(a)),
+        ],
+      ],
     );
   }
 
@@ -241,11 +348,14 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
 
   Widget _buildAsignacionCard(AsignacionRTMT asignacion) {
     final hasIncidencia = asignacion.tieneIncidencias;
+    // Verificar si es de un dia pasado y no se completo
+    final noCompletadaYPaso = asignacion.esDeDiaPasado &&
+        asignacion.estado != EstadoAsignacion.completada;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: noCompletadaYPaso ? Colors.red[50] : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -254,11 +364,15 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
             offset: const Offset(0, 2),
           ),
         ],
-        border: hasIncidencia
+        border: noCompletadaYPaso
             ? const Border(
-                left: BorderSide(color: Colors.orange, width: 4),
+                left: BorderSide(color: Colors.red, width: 4),
               )
-            : null,
+            : (hasIncidencia
+                ? const Border(
+                    left: BorderSide(color: Colors.orange, width: 4),
+                  )
+                : null),
       ),
       child: Material(
         color: Colors.transparent,
@@ -425,8 +539,39 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                 ),
               ),
 
-              // Incidence bar
-              if (hasIncidencia)
+              // Status bar (no completada o incidencia)
+              if (noCompletadaYPaso)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                    border: Border(
+                      top: BorderSide(color: Colors.red[200]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cancel_outlined, size: 16, color: Colors.red[700]),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'No completada - Turno finalizado',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (hasIncidencia)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -462,6 +607,263 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
     );
   }
 
+  /// Card para asignaciones próximas (días futuros)
+  Widget _buildAsignacionCardProxima(AsignacionRTMT asignacion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange[200]!, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Solo mostrar info, no navegar ya que es futura
+            _showProximaInfo(asignacion);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Icono de campaña
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: asignacion.camp?.medioIcono != null
+                            ? Image.network(
+                                asignacion.camp!.medioIcono!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Icon(Icons.schedule, color: Colors.orange[400]),
+                                ),
+                              )
+                            : Center(
+                                child: Icon(Icons.schedule, color: Colors.orange[400]),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            asignacion.nombreCampana,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            asignacion.nombreTienda,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Fecha y hora
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: Colors.orange[700]),
+                    const SizedBox(width: 6),
+                    Text(
+                      asignacion.fechaFormateada,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                    if (asignacion.horaFormateada.isNotEmpty) ...[
+                      const SizedBox(width: 16),
+                      Icon(Icons.access_time, size: 14, color: Colors.orange[700]),
+                      const SizedBox(width: 6),
+                      Text(
+                        asignacion.horaFormateada,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Próxima',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange[800],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showProximaInfo(AsignacionRTMT asignacion) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.schedule, color: Colors.orange[600], size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Actividad Programada',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Próxima asignación',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildInfoRow(Icons.campaign, 'Campaña', asignacion.nombreCampana),
+            _buildInfoRow(Icons.store, 'Tienda', asignacion.nombreTienda),
+            _buildInfoRow(Icons.calendar_today, 'Fecha', asignacion.fechaFormateada),
+            if (asignacion.horaFormateada.isNotEmpty)
+              _buildInfoRow(Icons.access_time, 'Hora', asignacion.horaFormateada),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue[600]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Esta actividad estará disponible el día programado.',
+                      style: TextStyle(color: Colors.blue[700], fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[500]),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMomentoDot(RegistroMomento registro) {
     Color color;
     if (registro.incidencia) {
@@ -486,11 +888,22 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
     final provider = context.read<DemostradorProvider>();
     provider.selectAsignacion(asignacion);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DemostradorDetailScreen(),
-      ),
-    );
+    // Si es de un día pasado, ir a pantalla de resumen (solo lectura)
+    // Si es de hoy, ir a pantalla de detalle (permite acciones)
+    if (asignacion.esDeDiaPasado) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AsignacionResumenScreen(),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DemostradorDetailScreen(),
+        ),
+      );
+    }
   }
 }

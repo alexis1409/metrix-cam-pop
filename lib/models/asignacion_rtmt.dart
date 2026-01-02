@@ -192,6 +192,69 @@ class Ubicacion {
       };
 }
 
+/// Evidencia de un momento
+class EvidenciaMomento {
+  final String url;
+  final String tipo;
+  final DateTime? fecha;
+  final Ubicacion? ubicacion;
+  final String? descripcion;
+  final String? marcaId;
+  final String? marcaNombre;
+  final String? productoUpc;
+
+  EvidenciaMomento({
+    required this.url,
+    this.tipo = 'foto',
+    this.fecha,
+    this.ubicacion,
+    this.descripcion,
+    this.marcaId,
+    this.marcaNombre,
+    this.productoUpc,
+  });
+
+  factory EvidenciaMomento.fromJson(dynamic json) {
+    // Si es string (URL simple), crear evidencia básica
+    if (json is String) {
+      return EvidenciaMomento(url: json);
+    }
+
+    // Si es mapa, parsear todos los campos
+    final map = json as Map<String, dynamic>;
+    return EvidenciaMomento(
+      url: map['url'] ?? '',
+      tipo: map['tipo'] ?? 'foto',
+      fecha: map['fecha'] != null ? DateTime.tryParse(map['fecha'].toString()) : null,
+      ubicacion: map['ubicacion'] != null
+          ? Ubicacion.fromJson(map['ubicacion'])
+          : null,
+      descripcion: map['descripcion'],
+      marcaId: _parseStringField(map['marcaId']),
+      marcaNombre: map['marcaNombre'],
+      productoUpc: map['productoUpc'],
+    );
+  }
+
+  static String? _parseStringField(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) return value['_id']?.toString() ?? value.toString();
+    return value.toString();
+  }
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'tipo': tipo,
+        if (fecha != null) 'fecha': fecha!.toIso8601String(),
+        if (ubicacion != null) 'ubicacion': ubicacion!.toJson(),
+        if (descripcion != null) 'descripcion': descripcion,
+        if (marcaId != null) 'marcaId': marcaId,
+        if (marcaNombre != null) 'marcaNombre': marcaNombre,
+        if (productoUpc != null) 'productoUpc': productoUpc,
+      };
+}
+
 /// Registro de momento
 class RegistroMomento {
   final bool completada;
@@ -200,7 +263,7 @@ class RegistroMomento {
   final DateTime? fecha;
   final Ubicacion? ubicacion;
   final String? notas;
-  final List<String> evidencias;
+  final List<EvidenciaMomento> evidencias;
 
   RegistroMomento({
     this.completada = false,
@@ -216,16 +279,26 @@ class RegistroMomento {
     if (json == null) {
       return RegistroMomento();
     }
+
+    // Parsear evidencias que pueden ser strings o objetos
+    List<EvidenciaMomento> evidenciasList = [];
+    final rawEvidencias = json['evidencias'];
+    if (rawEvidencias != null && rawEvidencias is List) {
+      evidenciasList = rawEvidencias
+          .map((e) => EvidenciaMomento.fromJson(e))
+          .toList();
+    }
+
     return RegistroMomento(
       completada: json['completada'] ?? false,
       incidencia: json['incidencia'] ?? false,
       incidenciaSupervisor: json['incidenciaSupervisor'] ?? false,
-      fecha: json['fecha'] != null ? DateTime.parse(json['fecha']) : null,
+      fecha: json['fecha'] != null ? DateTime.tryParse(json['fecha'].toString()) : null,
       ubicacion: json['ubicacion'] != null
           ? Ubicacion.fromJson(json['ubicacion'])
           : null,
       notas: json['notas'],
-      evidencias: List<String>.from(json['evidencias'] ?? []),
+      evidencias: evidenciasList,
     );
   }
 
@@ -236,7 +309,7 @@ class RegistroMomento {
         if (fecha != null) 'fecha': fecha!.toIso8601String(),
         if (ubicacion != null) 'ubicacion': ubicacion!.toJson(),
         if (notas != null) 'notas': notas,
-        'evidencias': evidencias,
+        'evidencias': evidencias.map((e) => e.toJson()).toList(),
       };
 }
 
@@ -333,10 +406,17 @@ class MarcaCampania {
 
   factory MarcaCampania.fromJson(Map<String, dynamic> json) {
     return MarcaCampania(
-      id: json['_id'] ?? json['id'],
+      id: _parseId(json['marcaId'] ?? json['_id'] ?? json['id']),
       nombre: json['nombre'] ?? '',
       icono: json['icono'],
     );
+  }
+
+  static String? _parseId(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) return value['\$oid']?.toString() ?? value['_id']?.toString() ?? value.toString();
+    return value.toString();
   }
 }
 
@@ -417,18 +497,26 @@ class ActividadRTMT {
 
   factory ActividadRTMT.fromJson(Map<String, dynamic> json) {
     DateTime? fechaDate;
+
+    // Primero intentar con fechaDate en formato ISO
     if (json['fechaDate'] != null) {
-      fechaDate = DateTime.parse(json['fechaDate']);
-    } else if (json['fecha'] != null) {
-      // Parse dd/mm/yyyy format
-      final parts = json['fecha'].toString().split('/');
-      if (parts.length == 3) {
-        fechaDate = DateTime(
-          int.parse(parts[2]),
-          int.parse(parts[1]),
-          int.parse(parts[0]),
-        );
-      }
+      try {
+        fechaDate = DateTime.parse(json['fechaDate']);
+      } catch (_) {}
+    }
+
+    // Si no hay fechaDate, parsear del campo fecha en formato dd/mm/yyyy
+    if (fechaDate == null && json['fecha'] != null) {
+      try {
+        final parts = json['fecha'].toString().split('/');
+        if (parts.length == 3) {
+          fechaDate = DateTime(
+            int.parse(parts[2]), // año
+            int.parse(parts[1]), // mes
+            int.parse(parts[0]), // día
+          );
+        }
+      } catch (_) {}
     }
 
     return ActividadRTMT(
@@ -453,6 +541,95 @@ class ActividadRTMT {
       return hora!.substring(0, 5);
     }
     return hora ?? '';
+  }
+
+  /// Obtiene la duracion del turno en horas (default 8 horas)
+  int get duracionHoras {
+    if (tiempoDinamica == null) return 8;
+    // tiempoDinamica puede venir como "8" o "8 horas"
+    final match = RegExp(r'(\d+)').firstMatch(tiempoDinamica!);
+    return match != null ? int.parse(match.group(1)!) : 8;
+  }
+
+  /// Obtiene el DateTime de inicio del turno
+  DateTime? get horaInicioTurno {
+    if (fechaDate == null || hora == null) return null;
+    try {
+      final parts = hora!.split(':');
+      if (parts.length >= 2) {
+        return DateTime(
+          fechaDate!.year,
+          fechaDate!.month,
+          fechaDate!.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Obtiene el DateTime de fin del turno
+  DateTime? get horaFinTurno {
+    final inicio = horaInicioTurno;
+    if (inicio == null) return null;
+    return inicio.add(Duration(hours: duracionHoras));
+  }
+
+  /// Obtiene el DateTime cuando se habilita el cierre (1 hora antes del fin)
+  DateTime? get horaHabilitaCierre {
+    final fin = horaFinTurno;
+    if (fin == null) return null;
+    return fin.subtract(const Duration(hours: 1));
+  }
+
+  /// Verifica si ya es hora de habilitar el cierre
+  bool get puedeHacerCierre {
+    final habilitaCierre = horaHabilitaCierre;
+    if (habilitaCierre == null) return true; // Si no hay datos, permitir
+    return DateTime.now().isAfter(habilitaCierre);
+  }
+
+  /// Formato de hora para mostrar cuando se habilita el cierre
+  String get horaHabilitaCierreFormateada {
+    final habilitaCierre = horaHabilitaCierre;
+    if (habilitaCierre == null) return '';
+    return '${habilitaCierre.hour.toString().padLeft(2, '0')}:${habilitaCierre.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Formato de hora de fin del turno
+  String get horaFinTurnoFormateada {
+    final fin = horaFinTurno;
+    if (fin == null) return '';
+    return '${fin.hour.toString().padLeft(2, '0')}:${fin.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Verifica si la fecha de la actividad es hoy
+  bool get esHoy {
+    // Si no hay fecha, asumimos que es de hoy para mantener compatibilidad
+    if (fechaDate == null) return true;
+    final hoy = DateTime.now();
+    return fechaDate!.year == hoy.year &&
+        fechaDate!.month == hoy.month &&
+        fechaDate!.day == hoy.day;
+  }
+
+  /// Verifica si la fecha de la actividad es de un dia pasado
+  bool get esDiaPasado {
+    // Si no hay fecha, NO es dia pasado (se asume hoy)
+    if (fechaDate == null) return false;
+    final hoy = DateTime.now();
+    final inicioHoy = DateTime(hoy.year, hoy.month, hoy.day);
+    return fechaDate!.isBefore(inicioHoy);
+  }
+
+  /// Verifica si la fecha de la actividad es de un dia futuro
+  bool get esDiaFuturo {
+    // Si no hay fecha, NO es dia futuro (se asume hoy)
+    if (fechaDate == null) return false;
+    final hoy = DateTime.now();
+    final finHoy = DateTime(hoy.year, hoy.month, hoy.day, 23, 59, 59);
+    return fechaDate!.isAfter(finHoy);
   }
 }
 
@@ -647,10 +824,68 @@ class AsignacionRTMT {
             !inicioActividades.incidencia &&
             !laborVenta.completada;
       case MomentoRTMT.cierreActividades:
-        return laborVenta.completada &&
+        // Verificar condiciones basicas
+        final condicionesBasicas = laborVenta.completada &&
             !laborVenta.incidencia &&
             !cierreActividades.completada;
+        if (!condicionesBasicas) return false;
+        // Verificar si ya es hora de hacer cierre (1 hora antes del fin del turno)
+        return actividad?.puedeHacerCierre ?? true;
     }
+  }
+
+  /// Verifica si el cierre esta bloqueado por tiempo
+  bool get cierreBloqueadoPorTiempo {
+    final condicionesBasicas = laborVenta.completada &&
+        !laborVenta.incidencia &&
+        !cierreActividades.completada;
+    if (!condicionesBasicas) return false;
+    // Si las condiciones basicas se cumplen pero no puede hacer cierre, es por tiempo
+    return !(actividad?.puedeHacerCierre ?? true);
+  }
+
+  /// Mensaje de cuando se habilita el cierre
+  String get mensajeCierreHabilitacion {
+    if (actividad?.horaHabilitaCierre == null) return '';
+    return 'El cierre se habilita a las ${actividad!.horaHabilitaCierreFormateada}';
+  }
+
+  /// Verifica si el turno ya paso (hora actual > hora fin del turno)
+  bool get turnoYaPaso {
+    // Si es un día pasado, el turno ya pasó
+    if (actividad?.esDiaPasado ?? false) return true;
+    // Si es hoy, verificar la hora de fin
+    final horaFin = actividad?.horaFinTurno;
+    if (horaFin == null) return false;
+    return DateTime.now().isAfter(horaFin);
+  }
+
+  /// Verifica si la asignacion es de un dia pasado
+  bool get esDeDiaPasado {
+    return actividad?.esDiaPasado ?? false;
+  }
+
+  /// Verifica si la asignacion debe mostrarse en "Terminadas"
+  /// Solo asignaciones de dias PASADOS (no incluye las de hoy)
+  bool get estaTerminada {
+    // Solo las de días pasados van a terminadas
+    // Si no hay actividad o fecha, NO es dia pasado
+    return esDeDiaPasado;
+  }
+
+  /// Verifica si la asignacion esta activa (solo las de HOY)
+  bool get estaActiva {
+    if (estado == EstadoAsignacion.cancelada) return false;
+    // Si no hay actividad, asumimos que es de hoy
+    if (actividad == null) return true;
+    // Solo las de hoy van a activas
+    return actividad!.esHoy;
+  }
+
+  /// Verifica si la asignacion es proxima (dias FUTUROS)
+  bool get esProxima {
+    if (estado == EstadoAsignacion.cancelada) return false;
+    return actividad?.esDiaFuturo ?? false;
   }
 
   /// Obtiene el registro de un momento especifico

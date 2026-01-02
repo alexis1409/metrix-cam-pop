@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../models/asignacion_rtmt.dart';
 import '../../providers/demostrador_provider.dart';
 import 'cierre_cuestionario_screen.dart';
+import 'quick_camera_screen.dart';
 
 class MomentoCaptureScreen extends StatefulWidget {
   final MomentoRTMT momento;
@@ -82,17 +82,17 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
   }
 
   Future<void> _takePhoto() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 60,
+    // Navigate to quick camera screen
+    final File? result = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuickCameraScreen(),
+      ),
     );
 
-    if (pickedFile != null) {
+    if (result != null && mounted) {
       setState(() {
-        _photo = File(pickedFile.path);
+        _photo = result;
       });
     }
   }
@@ -151,6 +151,8 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
         foto: _photo,
         ubicacion: _ubicacion,
         productoUpc: _productoSeleccionado?.upc,
+        marcaId: _productoSeleccionado?.upc,
+        marcaNombre: _productoSeleccionado?.nombre,
       );
     }
 
