@@ -6,23 +6,22 @@ import '../../providers/demostrador_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'demostrador_detail_screen.dart';
 
-class DemostradorHomeScreen extends StatefulWidget {
-  const DemostradorHomeScreen({super.key});
+/// Content widget for Demostrador Home - to be used inside a tab/indexed stack
+class DemostradorHomeContent extends StatefulWidget {
+  const DemostradorHomeContent({super.key});
 
   @override
-  State<DemostradorHomeScreen> createState() => _DemostradorHomeScreenState();
+  State<DemostradorHomeContent> createState() => _DemostradorHomeContentState();
 }
 
-class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
+class _DemostradorHomeContentState extends State<DemostradorHomeContent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String? _filterEstado;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadData();
   }
 
   @override
@@ -45,7 +44,9 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
   String _formatFechaHoy() {
     final hoy = DateTime.now();
     final formatter = DateFormat("EEEE, d 'de' MMMM 'de' yyyy", 'es_MX');
-    return formatter.format(hoy);
+    final formatted = formatter.format(hoy);
+    // Capitalize first letter
+    return formatted[0].toUpperCase() + formatted.substring(1);
   }
 
   @override
@@ -68,43 +69,14 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
               return _buildErrorState(provider.errorMessage!);
             }
 
-            // Calcular estadísticas
-            final total = provider.asignacionesHoy.length;
-            final pendientes = provider.asignacionesHoy
-                .where((a) => a.estado == EstadoAsignacion.pendiente)
-                .length;
-            final enProgreso = provider.asignacionesHoy
-                .where((a) => a.estado == EstadoAsignacion.enProgreso)
-                .length;
-            final completadas = provider.asignacionesHoy
-                .where((a) => a.estado == EstadoAsignacion.completada)
-                .length;
-
-            // Filtrar asignaciones
-            List<AsignacionRTMT> asignacionesFiltradas = provider.asignacionesHoy;
-            if (_filterEstado != null) {
-              asignacionesFiltradas = asignacionesFiltradas.where((a) {
-                switch (_filterEstado) {
-                  case 'pendiente':
-                    return a.estado == EstadoAsignacion.pendiente;
-                  case 'en_progreso':
-                    return a.estado == EstadoAsignacion.enProgreso;
-                  case 'completada':
-                    return a.estado == EstadoAsignacion.completada;
-                  default:
-                    return true;
-                }
-              }).toList();
-            }
-
-            // Separar activas y terminadas
-            final asignacionesActivas = asignacionesFiltradas
+            // Separate active and completed
+            final asignacionesActivas = provider.asignacionesHoy
                 .where((a) =>
                     a.estado == EstadoAsignacion.pendiente ||
                     a.estado == EstadoAsignacion.enProgreso ||
                     a.estado == EstadoAsignacion.incidencia)
                 .toList();
-            final asignacionesTerminadas = asignacionesFiltradas
+            final asignacionesTerminadas = provider.asignacionesHoy
                 .where((a) => a.estado == EstadoAsignacion.completada)
                 .toList();
 
@@ -112,7 +84,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
               onRefresh: _loadData,
               child: CustomScrollView(
                 slivers: [
-                  // Header con saludo
+                  // Header with greeting
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -134,54 +106,6 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                               fontSize: 14,
                               color: Colors.grey[600],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Stats Cards
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                      child: Row(
-                        children: [
-                          _buildStatCard(
-                            value: total.toString(),
-                            label: 'Total',
-                            isSelected: _filterEstado == null,
-                            onTap: () => setState(() => _filterEstado = null),
-                            color: Colors.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatCard(
-                            value: pendientes.toString(),
-                            label: 'Pendientes',
-                            isSelected: _filterEstado == 'pendiente',
-                            onTap: () => setState(() {
-                              _filterEstado = _filterEstado == 'pendiente' ? null : 'pendiente';
-                            }),
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatCard(
-                            value: enProgreso.toString(),
-                            label: 'En Progreso',
-                            isSelected: _filterEstado == 'en_progreso',
-                            onTap: () => setState(() {
-                              _filterEstado = _filterEstado == 'en_progreso' ? null : 'en_progreso';
-                            }),
-                            color: Colors.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatCard(
-                            value: completadas.toString(),
-                            label: 'Terminadas',
-                            isSelected: _filterEstado == 'completada',
-                            onTap: () => setState(() {
-                              _filterEstado = _filterEstado == 'completada' ? null : 'completada';
-                            }),
-                            color: Colors.green,
                           ),
                         ],
                       ),
@@ -233,63 +157,12 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _loadData,
-        backgroundColor: Colors.blue[600],
-        child: const Icon(Icons.refresh, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String value,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required Color color,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: isSelected
-                ? Border.all(color: color, width: 2)
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color == Colors.grey ? Colors.grey[600] : color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 9,
-                  color: Colors.grey[500],
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 100),
+        child: FloatingActionButton(
+          onPressed: _loadData,
+          backgroundColor: Colors.blue[600],
+          child: const Icon(Icons.refresh, color: Colors.white),
         ),
       ),
     );
@@ -357,7 +230,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), // Extra bottom padding for nav bar
       itemCount: asignaciones.length,
       itemBuilder: (context, index) {
         final asignacion = asignaciones[index];
@@ -400,7 +273,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Imagen de la campaña
+                    // Campaign image
                     Container(
                       width: 72,
                       height: 72,
@@ -429,12 +302,12 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                     ),
                     const SizedBox(width: 12),
 
-                    // Info principal
+                    // Main info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Nombre campaña + indicadores
+                          // Campaign name + indicators
                           Row(
                             children: [
                               Expanded(
@@ -450,7 +323,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // Indicadores de momentos
+                              // Moment indicators
                               Row(
                                 children: [
                                   _buildMomentoDot(asignacion.inicioActividades),
@@ -464,7 +337,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                           ),
                           const SizedBox(height: 4),
 
-                          // Tienda
+                          // Store
                           Text(
                             '(${asignacion.tienda.determinante}) ${asignacion.nombreTienda}',
                             style: TextStyle(
@@ -476,7 +349,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                           ),
                           const SizedBox(height: 8),
 
-                          // Fecha y hora
+                          // Date and time
                           Row(
                             children: [
                               Icon(
@@ -511,7 +384,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                             ],
                           ),
 
-                          // Dirección
+                          // Address
                           if (asignacion.tienda.direccionCompleta.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Row(
@@ -540,7 +413,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                       ),
                     ),
 
-                    // Flecha
+                    // Arrow
                     Padding(
                       padding: const EdgeInsets.only(left: 8),
                       child: Icon(
@@ -552,7 +425,7 @@ class _DemostradorHomeScreenState extends State<DemostradorHomeScreen>
                 ),
               ),
 
-              // Barra de incidencia
+              // Incidence bar
               if (hasIncidencia)
                 Container(
                   width: double.infinity,

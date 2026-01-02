@@ -24,10 +24,10 @@ class MomentoCaptureScreen extends StatefulWidget {
 class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
   File? _photo;
   Ubicacion? _ubicacion;
-  final _notasController = TextEditingController();
   bool _isLoading = false;
   bool _isGettingLocation = false;
   String? _locationError;
+  ProductoAsignacion? _productoSeleccionado;
 
   @override
   void initState() {
@@ -37,7 +37,6 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
   @override
   void dispose() {
-    _notasController.dispose();
     super.dispose();
   }
 
@@ -86,25 +85,9 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.camera,
-      maxWidth: 1280,
-      maxHeight: 1280,
-      imageQuality: 85,
-    );
-
-    if (pickedFile != null) {
-      setState(() {
-        _photo = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1280,
-      maxHeight: 1280,
-      imageQuality: 85,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 60,
     );
 
     if (pickedFile != null) {
@@ -122,9 +105,21 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
+    // Validar que se seleccione marca en Labor de Venta
     final provider = context.read<DemostradorProvider>();
+    if (widget.momento == MomentoRTMT.laborVenta) {
+      final asignacion = provider.asignacionActual;
+      final tieneMarcas = (asignacion?.camp?.marcas.isNotEmpty ?? false) ||
+          (asignacion?.productos.isNotEmpty ?? false);
+      if (tieneMarcas && _productoSeleccionado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor selecciona una marca')),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
 
     bool success;
     if (widget.isCorrection) {
@@ -132,7 +127,6 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
         momento: widget.momento,
         nuevaFoto: _photo,
         ubicacion: _ubicacion,
-        notas: _notasController.text.isNotEmpty ? _notasController.text : null,
       );
     } else {
       // If it's cierre, navigate to questionnaire
@@ -145,7 +139,6 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
               builder: (context) => CierreCuestionarioScreen(
                 foto: _photo!,
                 ubicacion: _ubicacion,
-                notas: _notasController.text.isNotEmpty ? _notasController.text : null,
               ),
             ),
           );
@@ -157,7 +150,7 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
         momento: widget.momento,
         foto: _photo,
         ubicacion: _ubicacion,
-        notas: _notasController.text.isNotEmpty ? _notasController.text : null,
+        productoUpc: _productoSeleccionado?.upc,
       );
     }
 
@@ -232,6 +225,10 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
             const SizedBox(height: 24),
 
+            // Brand selector for Labor de Venta
+            if (widget.momento == MomentoRTMT.laborVenta)
+              _buildProductSelector(),
+
             // Photo section
             _buildPhotoSection(),
 
@@ -239,19 +236,6 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
             // Location section
             _buildLocationSection(),
-
-            const SizedBox(height: 24),
-
-            // Notes section
-            TextField(
-              controller: _notasController,
-              decoration: const InputDecoration(
-                labelText: 'Notas (opcional)',
-                border: OutlineInputBorder(),
-                hintText: 'Agrega comentarios adicionales...',
-              ),
-              maxLines: 3,
-            ),
 
             const SizedBox(height: 32),
 
@@ -296,6 +280,115 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
     }
   }
 
+  Widget _buildProductSelector() {
+    final provider = context.watch<DemostradorProvider>();
+    final asignacion = provider.asignacionActual;
+
+    // Obtener marcas de la campaña
+    final marcasCampania = asignacion?.camp?.marcas ?? [];
+
+    // Convertir marcas a ProductoAsignacion para mantener compatibilidad
+    List<ProductoAsignacion> productos = [];
+
+    if (marcasCampania.isNotEmpty) {
+      // Usar las marcas del array de la campaña
+      productos = marcasCampania.map((marca) => ProductoAsignacion(
+        nombre: marca.nombre,
+        upc: marca.id ?? 'marca_${marca.nombre}',
+      )).toList();
+    } else if (asignacion?.productos.isNotEmpty ?? false) {
+      // Fallback: usar productos de la asignación
+      productos = asignacion!.productos;
+    }
+
+    // Si no hay marcas ni productos, no mostrar selector
+    if (productos.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Auto-seleccionar si solo hay una marca
+    if (productos.length == 1 && _productoSeleccionado == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _productoSeleccionado = productos.first;
+          });
+        }
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Selecciona la Marca',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Elige la marca del producto que estás promocionando',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: productos.map((producto) {
+            final isSelected = _productoSeleccionado?.upc == producto.upc;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _productoSeleccionado = producto;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.blue[50] : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.grey[300]!,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 20,
+                          color: Colors.blue[600],
+                        ),
+                      ),
+                    Text(
+                      producto.nombre ?? producto.upc ?? 'Producto',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? Colors.blue[700] : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
   Widget _buildPhotoSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,35 +428,54 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
             ],
           )
         else
-          Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.camera_alt, size: 48, color: Colors.grey[500]),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Cámara'),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('Galería'),
-                    ),
-                  ],
+          GestureDetector(
+            onTap: _takePhoto,
+            child: Container(
+              width: double.infinity,
+              height: 220,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 2,
+                  style: BorderStyle.solid,
                 ),
-              ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_rounded,
+                      size: 40,
+                      color: Colors.blue[400],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tomar Foto',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Toca para abrir la cámara',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],

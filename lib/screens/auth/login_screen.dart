@@ -45,13 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToHome(AuthProvider authProvider) {
-    final user = authProvider.user;
-    // Redirect based on role
-    if (user != null && user.isRetailtainmentOnly) {
-      Navigator.of(context).pushReplacementNamed('/retailtainment-home');
-    } else {
-      Navigator.of(context).pushReplacementNamed('/home');
-    }
+    // Todos los usuarios van a la pantalla de impulsador
+    Navigator.of(context).pushReplacementNamed('/impulsador');
   }
 
   @override

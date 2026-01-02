@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'core/database/database_service.dart';
 import 'providers/auth_provider.dart';
@@ -35,9 +36,13 @@ import 'screens/profile/profile_screen.dart';
 import 'screens/retailtainment/retailtainment_list_screen.dart';
 import 'screens/retailtainment/retailtainment_home_screen.dart';
 import 'screens/demostrador/demostrador_home_screen.dart';
+import 'screens/impulsador_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize date formatting for Spanish locale
+  await initializeDateFormatting('es_MX', null);
 
   // Set system UI style
   SystemChrome.setSystemUIOverlayStyle(
@@ -164,6 +169,7 @@ class MyApp extends StatelessWidget {
           '/retailtainment': (context) => const RetailtainmentListScreen(),
           '/retailtainment-home': (context) => const RetailtainmentHomeScreen(),
           '/demostrador': (context) => const DemostradorHomeScreen(),
+          '/impulsador': (context) => const ImpulsadorMainScreen(),
         },
       ),
     );

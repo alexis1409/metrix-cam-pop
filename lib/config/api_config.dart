@@ -3,7 +3,7 @@ class ApiConfig {
   // For Android emulator use: 10.0.2.2
   // For iOS simulator use: localhost
   // For real device use: your machine's IP address
-  static const String baseUrl = 'http://192.168.1.95:3001';
+  static const String baseUrl = 'http://192.168.0.44:3001';
 
   // Demostrador RTMT Endpoints
   static const String asignacionesUnified = '/asignaciones-unified';

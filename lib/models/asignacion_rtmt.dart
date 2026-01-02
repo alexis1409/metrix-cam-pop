@@ -319,6 +319,27 @@ class AgenciaAsignacion {
   }
 }
 
+/// Marca de campaña
+class MarcaCampania {
+  final String? id;
+  final String nombre;
+  final String? icono;
+
+  MarcaCampania({
+    this.id,
+    required this.nombre,
+    this.icono,
+  });
+
+  factory MarcaCampania.fromJson(Map<String, dynamic> json) {
+    return MarcaCampania(
+      id: json['_id'] ?? json['id'],
+      nombre: json['nombre'] ?? '',
+      icono: json['icono'],
+    );
+  }
+}
+
 /// Campaña en asignacion RTMT
 class CampAsignacion {
   final String? campId;
@@ -331,6 +352,7 @@ class CampAsignacion {
   final String? medioIcono;
   final String? anuncianteNombre;
   final String? marcaNombre;
+  final List<MarcaCampania> marcas;
 
   CampAsignacion({
     this.campId,
@@ -343,12 +365,21 @@ class CampAsignacion {
     this.medioIcono,
     this.anuncianteNombre,
     this.marcaNombre,
+    this.marcas = const [],
   });
 
   factory CampAsignacion.fromJson(Map<String, dynamic> json) {
     final medio = json['medio'] as Map<String, dynamic>?;
     final anunciante = json['anunciante'] as Map<String, dynamic>?;
     final marca = anunciante?['marca'] as Map<String, dynamic>?;
+
+    // Parsear array de marcas
+    List<MarcaCampania> marcasList = [];
+    if (json['marcas'] != null && json['marcas'] is List) {
+      marcasList = (json['marcas'] as List)
+          .map((m) => MarcaCampania.fromJson(m as Map<String, dynamic>))
+          .toList();
+    }
 
     return CampAsignacion(
       campId: json['campId'],
@@ -361,6 +392,7 @@ class CampAsignacion {
       medioIcono: medio?['icono'],
       anuncianteNombre: anunciante?['nombre'],
       marcaNombre: marca?['nombre'],
+      marcas: marcasList,
     );
   }
 }

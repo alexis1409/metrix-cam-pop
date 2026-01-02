@@ -145,6 +145,7 @@ class DemostradorProvider extends ChangeNotifier {
     File? foto,
     Ubicacion? ubicacion,
     String? notas,
+    String? productoUpc,
   }) async {
     if (_asignacionActual == null) {
       _errorMessage = 'No hay asignación seleccionada';
@@ -165,6 +166,7 @@ class DemostradorProvider extends ChangeNotifier {
           foto: foto,
           ubicacion: ubicacion,
           notas: notas,
+          productoUpc: productoUpc,
         );
       } else {
         result = await _service.registrarMomento(
@@ -172,6 +174,7 @@ class DemostradorProvider extends ChangeNotifier {
           momento: momento,
           ubicacion: ubicacion,
           notas: notas,
+          productoUpc: productoUpc,
         );
       }
 

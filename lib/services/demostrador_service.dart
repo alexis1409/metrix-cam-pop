@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import '../models/asignacion_rtmt.dart';
 import 'api_service.dart';
 
@@ -94,6 +95,7 @@ class DemostradorService {
     String? evidenciaUrl,
     Ubicacion? ubicacion,
     String? notas,
+    String? productoUpc,
   }) async {
     try {
       debugPrint('📋 [DemostradorService] Registering moment: ${momento.value}');
@@ -106,6 +108,7 @@ class DemostradorService {
       if (evidenciaUrl != null) body['evidenciaUrl'] = evidenciaUrl;
       if (ubicacion != null) body['ubicacion'] = ubicacion.toJson();
       if (notas != null) body['notas'] = notas;
+      if (productoUpc != null) body['productoUpc'] = productoUpc;
 
       final response = await _apiService.post(
         '/asignaciones-unified/$asignacionId/momento-rtmt',
@@ -120,10 +123,35 @@ class DemostradorService {
     }
   }
 
-  /// Subir foto y convertir a base64
+  /// Subir foto y convertir a base64 con compresión
   Future<String> convertImageToBase64(File photo) async {
     final bytes = await photo.readAsBytes();
-    return base64Encode(bytes);
+
+    // Decodificar la imagen
+    final image = img.decodeImage(bytes);
+    if (image == null) {
+      throw Exception('No se pudo decodificar la imagen');
+    }
+
+    // Redimensionar si es muy grande (máximo 600px)
+    img.Image resized;
+    if (image.width > 600 || image.height > 600) {
+      if (image.width > image.height) {
+        resized = img.copyResize(image, width: 600);
+      } else {
+        resized = img.copyResize(image, height: 600);
+      }
+    } else {
+      resized = image;
+    }
+
+    // Comprimir como JPEG con calidad 50%
+    final compressedBytes = img.encodeJpg(resized, quality: 50);
+
+    debugPrint('📷 [DemostradorService] Imagen original: ${bytes.length} bytes');
+    debugPrint('📷 [DemostradorService] Imagen comprimida: ${compressedBytes.length} bytes');
+
+    return base64Encode(compressedBytes);
   }
 
   /// Registrar momento con foto
@@ -133,6 +161,7 @@ class DemostradorService {
     required File foto,
     Ubicacion? ubicacion,
     String? notas,
+    String? productoUpc,
   }) async {
     final base64 = await convertImageToBase64(foto);
     return registrarMomento(
@@ -141,6 +170,7 @@ class DemostradorService {
       evidenciaBase64: 'data:image/jpeg;base64,$base64',
       ubicacion: ubicacion,
       notas: notas,
+      productoUpc: productoUpc,
     );
   }
 

@@ -7,13 +7,11 @@ import '../../providers/demostrador_provider.dart';
 class CierreCuestionarioScreen extends StatefulWidget {
   final File foto;
   final Ubicacion? ubicacion;
-  final String? notas;
 
   const CierreCuestionarioScreen({
     super.key,
     required this.foto,
     this.ubicacion,
-    this.notas,
   });
 
   @override
@@ -58,7 +56,6 @@ class _CierreCuestionarioScreenState extends State<CierreCuestionarioScreen> {
       numClientes: numClientes,
       numTickets: numTickets,
       intencionesCompra: intencionesCompra,
-      notas: widget.notas,
     );
 
     setState(() => _isLoading = false);
