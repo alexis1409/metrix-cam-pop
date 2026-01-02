@@ -19,12 +19,6 @@ class ProfileContent extends StatefulWidget {
 }
 
 class _ProfileContentState extends State<ProfileContent> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  bool _isSaving = false;
-  String? _errorMessage;
   bool _is2FAEnabled = false;
   bool _is2FALoading = true;
 
@@ -45,7 +39,6 @@ class _ProfileContentState extends State<ProfileContent> {
     final apiService = context.read<ApiService>();
     _userService = UserService(apiService);
     _authService = AuthService(apiService);
-    _loadUserData();
     _load2FAStatus();
     _loadStats();
     _loadStorageInfo();
@@ -126,78 +119,6 @@ class _ProfileContentState extends State<ProfileContent> {
     return '${(mb / 1024).toStringAsFixed(2)} GB';
   }
 
-  void _loadUserData() {
-    final user = context.read<AuthProvider>().user;
-    if (user != null) {
-      _nameController.text = user.name;
-      _phoneController.text = user.phone ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isSaving = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final authProvider = context.read<AuthProvider>();
-      final user = authProvider.user;
-      if (user == null) return;
-
-      await _userService.updateUser(user.id, {
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-      });
-
-      await authProvider.refreshUser();
-
-      if (mounted) {
-        _showSuccessSnackBar('Perfil actualizado');
-      }
-    } catch (e) {
-      setState(() => _errorMessage = 'Error al guardar: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(30),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
-          ],
-        ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,7 +139,7 @@ class _ProfileContentState extends State<ProfileContent> {
                   delegate: SliverChildListDelegate([
                     _buildStatsSection(),
                     const SizedBox(height: 16),
-                    _buildPersonalInfoSection(),
+                    _buildPersonalInfoSection(user),
                     const SizedBox(height: 16),
                     _buildWorkInfoSection(user),
                     const SizedBox(height: 16),
@@ -414,79 +335,23 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  Widget _buildPersonalInfoSection() {
+  Widget _buildPersonalInfoSection(dynamic user) {
     return _buildSection(
       title: 'Información Personal',
       icon: Icons.person_outline_rounded,
       iconColor: AppColors.secondaryStart,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            _buildTextField(
-              controller: _nameController,
-              label: 'Nombre completo',
-              icon: Icons.badge_outlined,
-              validator: (v) => v?.isEmpty == true ? 'Ingresa tu nombre' : null,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _phoneController,
-              label: 'Teléfono',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(_errorMessage!, style: const TextStyle(color: AppColors.error)),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryStart,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Guardar cambios', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.textSecondary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryStart, width: 2),
-        ),
-        filled: true,
-        fillColor: AppColors.surface,
+      child: Column(
+        children: [
+          _buildInfoTile(Icons.badge_outlined, 'Nombre', user.name ?? 'Sin nombre'),
+          const Divider(height: 1),
+          _buildInfoTile(
+            Icons.phone_outlined,
+            'Teléfono',
+            user.phone != null && user.phone.isNotEmpty ? user.phone : 'No registrado',
+          ),
+          const Divider(height: 1),
+          _buildInfoTile(Icons.email_outlined, 'Email', user.email ?? 'Sin email'),
+        ],
       ),
     );
   }
@@ -515,13 +380,6 @@ class _ProfileContentState extends State<ProfileContent> {
       iconColor: AppColors.error,
       child: Column(
         children: [
-          _buildActionTile(
-            icon: Icons.lock_outline_rounded,
-            title: 'Cambiar contraseña',
-            subtitle: 'Actualiza tu contraseña de acceso',
-            onTap: _showChangePasswordDialog,
-          ),
-          const Divider(height: 1),
           _buildActionTile(
             icon: Icons.security_rounded,
             iconColor: _is2FAEnabled ? AppColors.success : null,
@@ -795,118 +653,6 @@ class _ProfileContentState extends State<ProfileContent> {
             activeColor: AppColors.primaryStart,
           ),
         ],
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog() {
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool isLoading = false;
-    bool obscureNew = true;
-    bool obscureConfirm = true;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryStart.withAlpha(20),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.lock_outline, color: AppColors.primaryStart),
-              ),
-              const SizedBox(width: 12),
-              const Text('Cambiar contraseña'),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: newPasswordController,
-                  obscureText: obscureNew,
-                  decoration: InputDecoration(
-                    labelText: 'Nueva contraseña',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingresa la nueva contraseña';
-                    if (value.length < 6) return 'Mínimo 6 caracteres';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: confirmPasswordController,
-                  obscureText: obscureConfirm,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmar contraseña',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value != newPasswordController.text) return 'Las contraseñas no coinciden';
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      setDialogState(() => isLoading = true);
-                      try {
-                        final user = context.read<AuthProvider>().user;
-                        if (user != null) {
-                          await _userService.changePassword(user.id, newPasswordController.text);
-                        }
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          _showSuccessSnackBar('Contraseña actualizada');
-                        }
-                      } catch (e) {
-                        setDialogState(() => isLoading = false);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-                          );
-                        }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryStart,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Guardar'),
-            ),
-          ],
-        ),
       ),
     );
   }
