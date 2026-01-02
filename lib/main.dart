@@ -154,22 +154,28 @@ class MyApp extends StatelessWidget {
           create: (_) => DemostradorProvider(apiService),
         ),
       ],
-      child: MaterialApp(
-        title: 'Metrix CAM',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const SplashScreen(),
-          '/login': (context) => const LoginScreen(),
-          '/home': (context) => const MainScreen(),
-          '/tienda-campanias': (context) => const TiendaCampaniasScreen(),
-          '/profile': (context) => const ProfileScreen(),
-          '/notifications': (context) => const NotificationCenterScreen(),
-          '/retailtainment': (context) => const RetailtainmentListScreen(),
-          '/retailtainment-home': (context) => const RetailtainmentHomeScreen(),
-          '/demostrador': (context) => const DemostradorHomeScreen(),
-          '/impulsador': (context) => const ImpulsadorMainScreen(),
+      child: Consumer<SettingsProvider>(
+        builder: (context, settings, child) {
+          return MaterialApp(
+            title: 'Metrix CAM',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settings.darkModeEnabled ? ThemeMode.dark : ThemeMode.light,
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const SplashScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/home': (context) => const MainScreen(),
+              '/tienda-campanias': (context) => const TiendaCampaniasScreen(),
+              '/profile': (context) => const ProfileScreen(),
+              '/notifications': (context) => const NotificationCenterScreen(),
+              '/retailtainment': (context) => const RetailtainmentListScreen(),
+              '/retailtainment-home': (context) => const RetailtainmentHomeScreen(),
+              '/demostrador': (context) => const DemostradorHomeScreen(),
+              '/impulsador': (context) => const ImpulsadorMainScreen(),
+            },
+          );
         },
       ),
     );

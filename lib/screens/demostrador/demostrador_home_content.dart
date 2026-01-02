@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/asignacion_rtmt.dart';
 import '../../providers/demostrador_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -56,7 +57,7 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
     final userName = authProvider.user?.name.split(' ').first ?? 'Demostrador';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: Consumer<DemostradorProvider>(
           builder: (context, provider, child) {
@@ -106,10 +107,10 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                         children: [
                           Text(
                             '¡Hola, $userName!',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937),
+                              color: context.textPrimaryColor,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -117,7 +118,7 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                             _formatFechaHoy(),
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: context.textSecondaryColor,
                             ),
                           ),
                         ],
@@ -132,14 +133,14 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border(
-                            bottom: BorderSide(color: Colors.grey[200]!),
+                            bottom: BorderSide(color: context.borderColor),
                           ),
                         ),
                         child: TabBar(
                           controller: _tabController,
-                          labelColor: Colors.blue[600],
-                          unselectedLabelColor: Colors.grey[500],
-                          indicatorColor: Colors.blue[600],
+                          labelColor: AppColors.primaryStart,
+                          unselectedLabelColor: context.textMutedColor,
+                          indicatorColor: AppColors.primaryStart,
                           indicatorWeight: 2,
                           labelStyle: const TextStyle(
                             fontSize: 14,
@@ -174,7 +175,7 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
         padding: const EdgeInsets.only(bottom: 100),
         child: FloatingActionButton(
           onPressed: _loadData,
-          backgroundColor: Colors.blue[600],
+          backgroundColor: AppColors.primaryStart,
           child: const Icon(Icons.refresh, color: Colors.white),
         ),
       ),

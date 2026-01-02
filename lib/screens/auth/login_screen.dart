@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import 'two_factor_screen.dart';
 
@@ -52,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -66,14 +68,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   Icon(
                     Icons.camera_alt_outlined,
                     size: 80,
-                    color: Theme.of(context).primaryColor,
+                    color: AppColors.primaryStart,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Metrix CAM',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
+                          color: AppColors.primaryStart,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Material POP',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
+                          color: context.textSecondaryColor,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -91,28 +93,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, auth, _) {
                       if (auth.errorMessage != null) {
+                        final isDark = context.isDarkMode;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.red[50],
+                            color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red[50],
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red[200]!),
+                            border: Border.all(color: isDark ? Colors.red[700]! : Colors.red[200]!),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline, color: Colors.red[700]),
+                              Icon(Icons.error_outline, color: isDark ? Colors.red[300] : Colors.red[700]),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   auth.errorMessage!,
-                                  style: TextStyle(color: Colors.red[700]),
+                                  style: TextStyle(color: isDark ? Colors.red[300] : Colors.red[700]),
                                 ),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.close, size: 18),
                                 onPressed: () => auth.clearError(),
-                                color: Colors.red[700],
+                                color: isDark ? Colors.red[300] : Colors.red[700],
                               ),
                             ],
                           ),
@@ -220,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'v1.0.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[500],
+                          color: context.textMutedColor,
                         ),
                     textAlign: TextAlign.center,
                   ),

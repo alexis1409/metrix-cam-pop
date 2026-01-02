@@ -122,7 +122,7 @@ class _ProfileContentState extends State<ProfileContent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
           final user = authProvider.user;
@@ -261,76 +261,80 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   Widget _buildStatCard(String title, String value, String subtitle, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withAlpha(15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(30)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return Builder(
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withAlpha(context.isDarkMode ? 30 : 15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withAlpha(context.isDarkMode ? 50 : 30)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withAlpha(180),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: color.withAlpha(180),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                color: context.textSecondaryColor,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildProgressCard(String title, double percentage) {
     final color = percentage >= 80 ? AppColors.success : (percentage >= 50 ? Colors.orange : AppColors.error);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text(
-                '${percentage.toInt()}%',
-                style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 18),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: percentage / 100,
-              backgroundColor: color.withAlpha(30),
-              valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 8,
+    return Builder(
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.isDarkMode ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.textPrimaryColor)),
+                Text(
+                  '${percentage.toInt()}%',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 18),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: percentage / 100,
+                backgroundColor: color.withAlpha(context.isDarkMode ? 50 : 30),
+                valueColor: AlwaysStoppedAnimation(color),
+                minHeight: 8,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -343,13 +347,13 @@ class _ProfileContentState extends State<ProfileContent> {
       child: Column(
         children: [
           _buildInfoTile(Icons.badge_outlined, 'Nombre', user.name ?? 'Sin nombre'),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildInfoTile(
             Icons.phone_outlined,
             'Teléfono',
             user.phone != null && user.phone.isNotEmpty ? user.phone : 'No registrado',
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildInfoTile(Icons.email_outlined, 'Email', user.email ?? 'Sin email'),
         ],
       ),
@@ -364,9 +368,9 @@ class _ProfileContentState extends State<ProfileContent> {
       child: Column(
         children: [
           _buildInfoTile(Icons.badge_outlined, 'ID Empleado', user.id.substring(0, 8).toUpperCase()),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildInfoTile(Icons.admin_panel_settings_outlined, 'Rol', 'Impulsador'),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildInfoTile(Icons.location_city_outlined, 'Zona', 'Por asignar'),
         ],
       ),
@@ -413,7 +417,7 @@ class _ProfileContentState extends State<ProfileContent> {
                 value: settings.notificationsEnabled,
                 onChanged: (v) => settings.setNotificationsEnabled(v),
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: context.borderColor),
               _buildSwitchTile(
                 icon: Icons.dark_mode_outlined,
                 title: 'Modo oscuro',
@@ -435,7 +439,7 @@ class _ProfileContentState extends State<ProfileContent> {
       child: Column(
         children: [
           _buildInfoTile(Icons.folder_outlined, 'Espacio usado', _storageUsed),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildInfoTile(
             Icons.cloud_upload_outlined,
             'Fotos pendientes',
@@ -473,13 +477,13 @@ class _ProfileContentState extends State<ProfileContent> {
       child: Column(
         children: [
           _buildInfoTile(Icons.apps, 'Versión', '1.0.0 (Build 1)'),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildActionTile(
             icon: Icons.description_outlined,
             title: 'Términos y condiciones',
             onTap: () => _openUrl('https://metrix.com/terms'),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.borderColor),
           _buildActionTile(
             icon: Icons.privacy_tip_outlined,
             title: 'Política de privacidad',
@@ -531,65 +535,70 @@ class _ProfileContentState extends State<ProfileContent> {
     required Color iconColor,
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppShadows.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: iconColor.withAlpha(20),
-                    borderRadius: BorderRadius.circular(12),
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: context.isDarkMode ? [] : AppShadows.small,
+          border: context.isDarkMode ? Border.all(color: context.borderColor) : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconColor.withAlpha(context.isDarkMode ? 40 : 20),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 22),
                   ),
-                  child: Icon(icon, color: iconColor, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                  const SizedBox(width: 14),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: context.textPrimaryColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: child,
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: child,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInfoTile(IconData icon, String title, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textMuted, size: 22),
-          const SizedBox(width: 14),
-          Text(title, style: const TextStyle(color: AppColors.textSecondary)),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? AppColors.textPrimary,
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: context.textMutedColor, size: 22),
+            const SizedBox(width: 14),
+            Text(title, style: TextStyle(color: context.textSecondaryColor)),
+            const Spacer(),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? context.textPrimaryColor,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -602,32 +611,34 @@ class _ProfileContentState extends State<ProfileContent> {
     Color? iconColor,
     VoidCallback? onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, color: iconColor ?? AppColors.textMuted, size: 22),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    if (subtitle != null)
-                      Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                  ],
+    return Builder(
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor ?? context.textMutedColor, size: 22),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: context.textPrimaryColor)),
+                      if (subtitle != null)
+                        Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 12, color: context.textSecondaryColor),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              trailing ?? const Icon(Icons.chevron_right, color: AppColors.textMuted),
-            ],
+                trailing ?? Icon(Icons.chevron_right, color: context.textMutedColor),
+              ],
+            ),
           ),
         ),
       ),
@@ -640,19 +651,21 @@ class _ProfileContentState extends State<ProfileContent> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textMuted, size: 22),
-          const SizedBox(width: 14),
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500))),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.primaryStart,
-          ),
-        ],
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(icon, color: context.textMutedColor, size: 22),
+            const SizedBox(width: 14),
+            Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: context.textPrimaryColor))),
+            Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.primaryStart,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -669,38 +682,42 @@ class _ProfileContentState extends State<ProfileContent> {
   Future<void> _showLogoutDialog() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.error.withAlpha(20),
-                borderRadius: BorderRadius.circular(10),
+      builder: (ctx) {
+        final isDark = ctx.isDarkMode;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withAlpha(isDark ? 40 : 20),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.logout, color: AppColors.error),
               ),
-              child: const Icon(Icons.logout, color: AppColors.error),
+              const SizedBox(width: 12),
+              Text('Cerrar sesión', style: TextStyle(color: ctx.textPrimaryColor)),
+            ],
+          ),
+          content: Text('¿Estás seguro que deseas cerrar sesión?', style: TextStyle(color: ctx.textSecondaryColor)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancelar', style: TextStyle(color: ctx.textSecondaryColor)),
             ),
-            const SizedBox(width: 12),
-            const Text('Cerrar sesión'),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Salir'),
+            ),
           ],
-        ),
-        content: const Text('¿Estás seguro que deseas cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Salir'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirm == true && mounted) {
@@ -715,43 +732,46 @@ class _ProfileContentState extends State<ProfileContent> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            const Text('Contactar Soporte', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.green.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.chat, color: Colors.green),
+      builder: (ctx) {
+        final isDark = ctx.isDarkMode;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: ctx.borderColor, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 24),
+              Text('Contactar Soporte', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: ctx.textPrimaryColor)),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.green.withAlpha(isDark ? 40 : 20), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.chat, color: Colors.green),
+                ),
+                title: Text('WhatsApp', style: TextStyle(color: ctx.textPrimaryColor)),
+                subtitle: Text('+52 55 1234 5678', style: TextStyle(color: ctx.textSecondaryColor)),
+                onTap: () => _openUrl('https://wa.me/5255123456'),
               ),
-              title: const Text('WhatsApp'),
-              subtitle: const Text('+52 55 1234 5678'),
-              onTap: () => _openUrl('https://wa.me/5255123456'),
-            ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.blue.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.email, color: Colors.blue),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.blue.withAlpha(isDark ? 40 : 20), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.email, color: Colors.blue),
+                ),
+                title: Text('Email', style: TextStyle(color: ctx.textPrimaryColor)),
+                subtitle: Text('soporte@metrix.com', style: TextStyle(color: ctx.textSecondaryColor)),
+                onTap: () => _openUrl('mailto:soporte@metrix.com'),
               ),
-              title: const Text('Email'),
-              subtitle: const Text('soporte@metrix.com'),
-              onTap: () => _openUrl('mailto:soporte@metrix.com'),
-            ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-          ],
-        ),
-      ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+            ],
+          ),
+        );
+      },
     );
   }
 

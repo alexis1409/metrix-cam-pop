@@ -59,6 +59,8 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
   }
 
   Widget _buildModernNavBar() {
+    final isDark = context.isDarkMode;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: ClipRRect(
@@ -68,17 +70,23 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
           child: Container(
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(230),
+              color: isDark
+                  ? AppColors.surfaceDark.withAlpha(230)
+                  : Colors.white.withAlpha(230),
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryStart.withAlpha(20),
+                  color: isDark
+                      ? Colors.black.withAlpha(40)
+                      : AppColors.primaryStart.withAlpha(20),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
               ],
               border: Border.all(
-                color: Colors.white.withAlpha(200),
+                color: isDark
+                    ? AppColors.borderDark.withAlpha(100)
+                    : Colors.white.withAlpha(200),
                 width: 1,
               ),
             ),
@@ -112,6 +120,7 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
+    final isDark = context.isDarkMode;
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
@@ -120,7 +129,9 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primaryStart.withAlpha(15) : Colors.transparent,
+          color: isActive
+              ? AppColors.primaryStart.withAlpha(isDark ? 30 : 15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -131,7 +142,9 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
               child: Icon(
                 isActive ? activeIcon : icon,
                 key: ValueKey(isActive),
-                color: isActive ? AppColors.primaryStart : AppColors.textMuted,
+                color: isActive
+                    ? AppColors.primaryStart
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
                 size: 26,
               ),
             ),
@@ -141,7 +154,9 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive ? AppColors.primaryStart : AppColors.textMuted,
+                color: isActive
+                    ? AppColors.primaryStart
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
               ),
             ),
           ],

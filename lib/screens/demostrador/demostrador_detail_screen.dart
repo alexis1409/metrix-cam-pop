@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/asignacion_rtmt.dart';
 import '../../providers/demostrador_provider.dart';
 import 'momento_capture_screen.dart';
@@ -56,7 +57,7 @@ class DemostradorDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoCard(asignacion),
+                  _buildInfoCard(context, asignacion),
                   const SizedBox(height: 16),
                   _buildMomentosSection(context, asignacion, provider),
                   if (asignacion.camp?.canjeTicket == true) ...[
@@ -65,7 +66,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                   ],
                   if (asignacion.tieneIncidencias) ...[
                     const SizedBox(height: 16),
-                    _buildIncidenciasAlert(asignacion),
+                    _buildIncidenciasAlert(context, asignacion),
                   ],
                 ],
               ),
@@ -76,8 +77,9 @@ class DemostradorDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(AsignacionRTMT asignacion) {
+  Widget _buildInfoCard(BuildContext context, AsignacionRTMT asignacion) {
     return Card(
+      color: context.surfaceColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -104,16 +106,17 @@ class DemostradorDetailScreen extends StatelessWidget {
                     children: [
                       Text(
                         asignacion.nombreTienda,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: context.textPrimaryColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         asignacion.tienda.determinante,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: context.textSecondaryColor,
                           fontSize: 14,
                         ),
                       ),
@@ -122,13 +125,14 @@ class DemostradorDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const Divider(height: 24),
-            _buildInfoRow(Icons.calendar_today, 'Fecha', asignacion.fechaFormateada),
+            Divider(height: 24, color: context.borderColor),
+            _buildInfoRow(context, Icons.calendar_today, 'Fecha', asignacion.fechaFormateada),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.access_time, 'Hora', asignacion.horaFormateada),
+            _buildInfoRow(context, Icons.access_time, 'Hora', asignacion.horaFormateada),
             if (asignacion.tienda.direccionCompleta.isNotEmpty) ...[
               const SizedBox(height: 8),
               _buildInfoRow(
+                context,
                 Icons.location_on,
                 'Dirección',
                 asignacion.tienda.direccionCompleta,
@@ -137,6 +141,7 @@ class DemostradorDetailScreen extends StatelessWidget {
             if (asignacion.agencia != null) ...[
               const SizedBox(height: 8),
               _buildInfoRow(
+                context,
                 Icons.business,
                 'Agencia',
                 asignacion.agencia!.nombre ?? asignacion.agencia!.clave ?? '',
@@ -146,7 +151,7 @@ class DemostradorDetailScreen extends StatelessWidget {
             // Progress bar
             LinearProgressIndicator(
               value: asignacion.progreso,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: context.isDarkMode ? AppColors.surfaceVariantDark : Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(
                 asignacion.estado == EstadoAsignacion.completada
                     ? Colors.green
@@ -159,7 +164,7 @@ class DemostradorDetailScreen extends StatelessWidget {
             Text(
               '${(asignacion.progreso * 100).toInt()}% completado',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: context.textSecondaryColor,
                 fontSize: 12,
               ),
             ),
@@ -169,19 +174,22 @@ class DemostradorDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey[600]),
+        Icon(icon, size: 18, color: context.textSecondaryColor),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(color: Colors.grey[600]),
+          style: TextStyle(color: context.textSecondaryColor),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: context.textPrimaryColor,
+            ),
           ),
         ),
       ],
@@ -196,11 +204,12 @@ class DemostradorDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Momentos del Día',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: context.textPrimaryColor,
           ),
         ),
         const SizedBox(height: 12),
@@ -271,14 +280,15 @@ class DemostradorDetailScreen extends StatelessWidget {
     }
 
     return Card(
+      color: context.surfaceColor,
       elevation: canAdvance && !registro.completada ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: canAdvance && !registro.completada
-            ? BorderSide(color: Colors.blue, width: 2)
+            ? const BorderSide(color: Colors.blue, width: 2)
             : (cierreBloqueadoPorTiempo
-                ? BorderSide(color: Colors.amber, width: 2)
-                : BorderSide.none),
+                ? const BorderSide(color: Colors.amber, width: 2)
+                : BorderSide(color: context.borderColor, width: 0.5)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -306,9 +316,10 @@ class DemostradorDetailScreen extends StatelessWidget {
                   children: [
                     Text(
                       momento.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: context.textPrimaryColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -329,7 +340,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                           Text(
                             '${registro.fecha!.hour.toString().padLeft(2, '0')}:${registro.fecha!.minute.toString().padLeft(2, '0')}',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: context.textSecondaryColor,
                               fontSize: 12,
                             ),
                           ),
@@ -386,11 +397,12 @@ class DemostradorDetailScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Tickets de Canje',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: context.textPrimaryColor,
               ),
             ),
             if (asignacion.laborVenta.completada && !asignacion.laborVenta.incidencia)
@@ -409,6 +421,7 @@ class DemostradorDetailScreen extends StatelessWidget {
         const SizedBox(height: 12),
         if (asignacion.cuestionario.numTickets > 0)
           Card(
+            color: context.surfaceColor,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -427,14 +440,15 @@ class DemostradorDetailScreen extends StatelessWidget {
                     children: [
                       Text(
                         '${asignacion.cuestionario.numTickets} tickets',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: context.textPrimaryColor,
                         ),
                       ),
                       Text(
                         'registrados hoy',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: context.textSecondaryColor),
                       ),
                     ],
                   ),
@@ -444,16 +458,17 @@ class DemostradorDetailScreen extends StatelessWidget {
           )
         else
           Card(
+            color: context.surfaceColor,
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.receipt_long, size: 48, color: Colors.grey[400]),
+                    Icon(Icons.receipt_long, size: 48, color: context.textMutedColor),
                     const SizedBox(height: 8),
                     Text(
                       'No hay tickets registrados',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: context.textSecondaryColor),
                     ),
                   ],
                 ),
@@ -464,14 +479,14 @@ class DemostradorDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildIncidenciasAlert(AsignacionRTMT asignacion) {
+  Widget _buildIncidenciasAlert(BuildContext context, AsignacionRTMT asignacion) {
     return Card(
-      color: Colors.orange.shade50,
+      color: context.isDarkMode ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.warning_amber, color: Colors.orange[700]),
+            Icon(Icons.warning_amber, color: Colors.orange[context.isDarkMode ? 400 : 700]),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -480,7 +495,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                   Text(
                     'Tienes incidencias pendientes',
                     style: TextStyle(
-                      color: Colors.orange[800],
+                      color: Colors.orange[context.isDarkMode ? 300 : 800],
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -488,7 +503,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                   Text(
                     'Corrige las incidencias para poder continuar',
                     style: TextStyle(
-                      color: Colors.orange[700],
+                      color: Colors.orange[context.isDarkMode ? 400 : 700],
                       fontSize: 12,
                     ),
                   ),

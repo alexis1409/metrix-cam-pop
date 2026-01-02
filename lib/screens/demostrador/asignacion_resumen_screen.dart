@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/asignacion_rtmt.dart';
 import '../../providers/demostrador_provider.dart';
 
@@ -22,22 +23,26 @@ class AsignacionResumenScreen extends StatelessWidget {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: context.backgroundColor,
           appBar: AppBar(
-            title: const Text('Resumen de Actividad'),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
+            title: Text(
+              'Resumen de Actividad',
+              style: TextStyle(color: context.textPrimaryColor),
+            ),
+            backgroundColor: context.surfaceColor,
+            foregroundColor: context.textPrimaryColor,
             elevation: 0,
+            iconTheme: IconThemeData(color: context.textPrimaryColor),
           ),
           body: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header con info de la campaña
-                _buildCampaignHeader(asignacion),
+                _buildCampaignHeader(context, asignacion),
 
                 // Estado general
-                _buildEstadoGeneral(asignacion),
+                _buildEstadoGeneral(context, asignacion),
 
                 const SizedBox(height: 16),
 
@@ -49,7 +54,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
+                      color: context.textPrimaryColor,
                     ),
                   ),
                 ),
@@ -80,7 +85,7 @@ class AsignacionResumenScreen extends StatelessWidget {
 
                 // Cuestionario de cierre si existe
                 if (asignacion.cierreActividades.completada)
-                  _buildCuestionarioResumen(asignacion),
+                  _buildCuestionarioResumen(context, asignacion),
 
                 const SizedBox(height: 32),
               ],
@@ -91,15 +96,15 @@ class AsignacionResumenScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCampaignHeader(AsignacionRTMT asignacion) {
+  Widget _buildCampaignHeader(BuildContext context, AsignacionRTMT asignacion) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.surfaceColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -115,7 +120,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: context.isDarkMode ? AppColors.surfaceVariantDark : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
@@ -140,9 +145,10 @@ class AsignacionResumenScreen extends StatelessWidget {
                   children: [
                     Text(
                       asignacion.nombreCampana,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: context.textPrimaryColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -150,7 +156,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                       asignacion.nombreTienda,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: context.textSecondaryColor,
                       ),
                     ),
                   ],
@@ -162,19 +168,19 @@ class AsignacionResumenScreen extends StatelessWidget {
           // Fecha y hora
           Row(
             children: [
-              Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
+              Icon(Icons.calendar_today, size: 16, color: context.textMutedColor),
               const SizedBox(width: 6),
               Text(
                 asignacion.fechaFormateada,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 14, color: context.textSecondaryColor),
               ),
               if (asignacion.horaFormateada.isNotEmpty) ...[
                 const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
+                Icon(Icons.access_time, size: 16, color: context.textMutedColor),
                 const SizedBox(width: 6),
                 Text(
                   asignacion.horaFormateada,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 14, color: context.textSecondaryColor),
                 ),
               ],
             ],
@@ -184,9 +190,10 @@ class AsignacionResumenScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEstadoGeneral(AsignacionRTMT asignacion) {
+  Widget _buildEstadoGeneral(BuildContext context, AsignacionRTMT asignacion) {
     final completada = asignacion.estado == EstadoAsignacion.completada;
     final tieneIncidencias = asignacion.tieneIncidencias;
+    final isDark = context.isDarkMode;
 
     Color bgColor;
     Color textColor;
@@ -194,18 +201,18 @@ class AsignacionResumenScreen extends StatelessWidget {
     String mensaje;
 
     if (completada) {
-      bgColor = Colors.green[50]!;
-      textColor = Colors.green[700]!;
+      bgColor = isDark ? Colors.green.shade900.withOpacity(0.3) : Colors.green[50]!;
+      textColor = isDark ? Colors.green[300]! : Colors.green[700]!;
       icon = Icons.check_circle;
       mensaje = 'Actividad completada exitosamente';
     } else if (tieneIncidencias) {
-      bgColor = Colors.orange[50]!;
-      textColor = Colors.orange[700]!;
+      bgColor = isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange[50]!;
+      textColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
       icon = Icons.warning_amber;
       mensaje = 'Actividad con incidencias pendientes';
     } else {
-      bgColor = Colors.red[50]!;
-      textColor = Colors.red[700]!;
+      bgColor = isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red[50]!;
+      textColor = isDark ? Colors.red[300]! : Colors.red[700]!;
       icon = Icons.cancel;
       mensaje = 'Actividad no completada - Turno finalizado';
     }
@@ -243,21 +250,22 @@ class AsignacionResumenScreen extends StatelessWidget {
   }) {
     final completada = registro.completada;
     final tieneIncidencia = registro.incidencia;
+    final isDark = context.isDarkMode;
 
     Color statusColor;
     IconData statusIcon;
     String statusText;
 
     if (tieneIncidencia) {
-      statusColor = Colors.orange;
+      statusColor = isDark ? Colors.orange[300]! : Colors.orange;
       statusIcon = Icons.warning;
       statusText = 'Con incidencia';
     } else if (completada) {
-      statusColor = Colors.green;
+      statusColor = isDark ? Colors.green[300]! : Colors.green;
       statusIcon = Icons.check_circle;
       statusText = 'Completado';
     } else {
-      statusColor = Colors.grey;
+      statusColor = context.textMutedColor;
       statusIcon = Icons.cancel;
       statusText = 'No realizado';
     }
@@ -265,11 +273,11 @@ class AsignacionResumenScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -290,9 +298,10 @@ class AsignacionResumenScreen extends StatelessWidget {
           ),
           title: Text(
             momento.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
+              color: context.textPrimaryColor,
             ),
           ),
           subtitle: Row(
@@ -313,13 +322,14 @@ class AsignacionResumenScreen extends StatelessWidget {
             if (completada || tieneIncidencia) ...[
               // Mostrar evidencias
               if (registro.evidencias.isNotEmpty) ...[
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Evidencias:',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
+                      color: context.textPrimaryColor,
                     ),
                   ),
                 ),
@@ -338,7 +348,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                           margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[300]!),
+                            border: Border.all(color: context.borderColor),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(7),
@@ -349,8 +359,8 @@ class AsignacionResumenScreen extends StatelessWidget {
                                   evidencia.url,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
-                                    color: Colors.grey[200],
-                                    child: const Icon(Icons.broken_image),
+                                    color: context.isDarkMode ? AppColors.surfaceVariantDark : Colors.grey[200],
+                                    child: Icon(Icons.broken_image, color: context.textMutedColor),
                                   ),
                                   loadingBuilder: (context, child, progress) {
                                     if (progress == null) return child;
@@ -410,16 +420,16 @@ class AsignacionResumenScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.isDarkMode ? AppColors.surfaceVariantDark : Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.image_not_supported, color: Colors.grey[400]),
+                      Icon(Icons.image_not_supported, color: context.textMutedColor),
                       const SizedBox(width: 8),
                       Text(
                         'Sin evidencias registradas',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: context.textSecondaryColor),
                       ),
                     ],
                   ),
@@ -431,13 +441,13 @@ class AsignacionResumenScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.schedule, size: 14, color: Colors.grey[500]),
+                    Icon(Icons.schedule, size: 14, color: context.textMutedColor),
                     const SizedBox(width: 4),
                     Text(
                       'Registrado: ${_formatDateTime(registro.fecha!)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: context.textSecondaryColor,
                       ),
                     ),
                   ],
@@ -449,13 +459,13 @@ class AsignacionResumenScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.grey[500]),
+                    Icon(Icons.location_on, size: 14, color: context.textMutedColor),
                     const SizedBox(width: 4),
                     Text(
                       '${registro.ubicacion!.lat.toStringAsFixed(4)}, ${registro.ubicacion!.lng.toStringAsFixed(4)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: context.textSecondaryColor,
                       ),
                     ),
                   ],
@@ -469,7 +479,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: context.isDarkMode ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -480,7 +490,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.blue[700],
+                          color: context.isDarkMode ? Colors.blue[300] : Colors.blue[700],
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -488,7 +498,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                         registro.notas!,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.blue[900],
+                          color: context.isDarkMode ? Colors.blue[200] : Colors.blue[900],
                         ),
                       ),
                     ],
@@ -500,18 +510,18 @@ class AsignacionResumenScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
+                  color: context.isDarkMode ? Colors.red.shade900.withOpacity(0.3) : Colors.red[50],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.red[400]),
+                    Icon(Icons.info_outline, color: context.isDarkMode ? Colors.red[300] : Colors.red[400]),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Este momento no fue registrado antes de que finalizara el turno.',
                         style: TextStyle(
-                          color: Colors.red[700],
+                          color: context.isDarkMode ? Colors.red[300] : Colors.red[700],
                           fontSize: 13,
                         ),
                       ),
@@ -526,18 +536,19 @@ class AsignacionResumenScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCuestionarioResumen(AsignacionRTMT asignacion) {
+  Widget _buildCuestionarioResumen(BuildContext context, AsignacionRTMT asignacion) {
     final cuestionario = asignacion.cuestionario;
+    final isDark = context.isDarkMode;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -551,29 +562,32 @@ class AsignacionResumenScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
+                  color: isDark ? Colors.purple.shade900.withOpacity(0.3) : Colors.purple[50],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.assignment, color: Colors.purple[400]),
+                child: Icon(Icons.assignment, color: isDark ? Colors.purple[300] : Colors.purple[400]),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Cuestionario de Cierre',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: context.textPrimaryColor,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           _buildCuestionarioItem(
+            context,
             'Clientes atendidos',
             cuestionario.numClientes.toString(),
             Icons.people,
           ),
           const SizedBox(height: 10),
           _buildCuestionarioItem(
+            context,
             'Tickets canjeados',
             cuestionario.numTickets.toString(),
             Icons.confirmation_number,
@@ -581,13 +595,14 @@ class AsignacionResumenScreen extends StatelessWidget {
           // Productos si existen
           if (asignacion.productos.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Divider(),
+            Divider(color: context.borderColor),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Intenciones de Compra por Producto:',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                color: context.textPrimaryColor,
               ),
             ),
             const SizedBox(height: 8),
@@ -598,7 +613,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                     children: [
                       Text(
                         producto.nombre ?? producto.upc ?? 'Producto',
-                        style: const TextStyle(fontSize: 14),
+                        style: TextStyle(fontSize: 14, color: context.textPrimaryColor),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -606,13 +621,13 @@ class AsignacionResumenScreen extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: isDark ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue[50],
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           '${producto.intencionesCompra}',
                           style: TextStyle(
-                            color: Colors.blue[700],
+                            color: isDark ? Colors.blue[300] : Colors.blue[700],
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -626,31 +641,32 @@ class AsignacionResumenScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCuestionarioItem(String label, String value, IconData icon) {
+  Widget _buildCuestionarioItem(BuildContext context, String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey[500]),
+        Icon(icon, size: 18, color: context.textMutedColor),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[700],
+              color: context.textSecondaryColor,
             ),
           ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: context.isDarkMode ? AppColors.surfaceVariantDark : Colors.grey[100],
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: context.textPrimaryColor,
             ),
           ),
         ),
