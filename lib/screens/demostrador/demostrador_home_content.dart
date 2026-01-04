@@ -90,9 +90,19 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                 return fechaA.compareTo(fechaB);
               });
             // Terminadas: solo asignaciones de dias PASADOS
+            // Ordenadas por fecha descendente (más reciente primero)
             final asignacionesTerminadas = provider.asignacionesHoy
                 .where((a) => a.estaTerminada)
-                .toList();
+                .toList()
+              ..sort((a, b) {
+                // Ordenar por fecha descendente (más reciente primero)
+                final fechaA = a.actividad?.fechaDate;
+                final fechaB = b.actividad?.fechaDate;
+                if (fechaA == null && fechaB == null) return 0;
+                if (fechaA == null) return 1;
+                if (fechaB == null) return -1;
+                return fechaB.compareTo(fechaA); // Descendente
+              });
 
             return RefreshIndicator(
               onRefresh: _loadData,
