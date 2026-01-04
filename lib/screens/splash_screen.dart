@@ -87,15 +87,18 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Color rojo del logo Metrix
+    const metrixRed = Color(0xFFE52D27);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF667EEA),
-              Color(0xFF764BA2),
+              Color(0xFFFFFFFF),
+              Color(0xFFF8F9FA),
             ],
           ),
         ),
@@ -113,59 +116,58 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo container with glassmorphism effect
+                  // Logo Metrix
                   Container(
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(30),
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(
-                        color: Colors.white.withAlpha(40),
-                        width: 2,
-                      ),
+                      color: metrixRed,
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(25),
+                          color: metrixRed.withOpacity(0.3),
                           blurRadius: 30,
                           offset: const Offset(0, 15),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      size: 56,
-                      color: Colors.white,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/icon/icon.png',
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // App name with modern typography
+                  // App name - Metrix Cam
                   const Text(
-                    'Metrix',
+                    'Metrix Cam',
                     style: TextStyle(
-                      fontSize: 42,
+                      fontSize: 38,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -1,
+                      color: Color(0xFF1A1A2E),
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
+                  // Eslogan
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
+                      horizontal: 20,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(25),
+                      color: metrixRed.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'CAM POP',
+                      'Inteligencia Analítica',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 4,
+                        color: metrixRed,
+                        letterSpacing: 1.5,
                       ),
                     ),
                   ),
@@ -176,9 +178,7 @@ class _SplashScreenState extends State<SplashScreen>
                     height: 44,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation(
-                        Colors.white.withAlpha(200),
-                      ),
+                      valueColor: const AlwaysStoppedAnimation(metrixRed),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -187,7 +187,7 @@ class _SplashScreenState extends State<SplashScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withAlpha(180),
+                      color: Colors.grey[500],
                     ),
                   ),
                 ],

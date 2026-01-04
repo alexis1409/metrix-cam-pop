@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ticket_canje.dart';
 
 /// Estado de la asignacion RTMT
 enum EstadoAsignacion {
@@ -427,12 +428,15 @@ class CampAsignacion {
   final String nombre;
   final bool canjeTicket;
   final bool activacionRetail;
+  final String? tipoRetailtainment; // 'demostracion' | 'canje_compra' | 'canje_dinamica'
   final int cantidadMomentos;
   final String? medioNombre;
   final String? medioIcono;
   final String? anuncianteNombre;
   final String? marcaNombre;
   final List<MarcaCampania> marcas;
+  final List<ConfigCanje> configCanje;
+  final List<ConfigDinamica> configDinamica;
 
   CampAsignacion({
     this.campId,
@@ -440,12 +444,15 @@ class CampAsignacion {
     required this.nombre,
     this.canjeTicket = false,
     this.activacionRetail = false,
+    this.tipoRetailtainment,
     this.cantidadMomentos = 1,
     this.medioNombre,
     this.medioIcono,
     this.anuncianteNombre,
     this.marcaNombre,
     this.marcas = const [],
+    this.configCanje = const [],
+    this.configDinamica = const [],
   });
 
   factory CampAsignacion.fromJson(Map<String, dynamic> json) {
@@ -461,19 +468,60 @@ class CampAsignacion {
           .toList();
     }
 
+    // Parsear array de configCanje
+    List<ConfigCanje> configCanjeList = [];
+    if (json['configCanje'] != null && json['configCanje'] is List) {
+      configCanjeList = (json['configCanje'] as List)
+          .map((c) => ConfigCanje.fromJson(c as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Parsear array de configDinamica
+    List<ConfigDinamica> configDinamicaList = [];
+    if (json['configDinamica'] != null && json['configDinamica'] is List) {
+      configDinamicaList = (json['configDinamica'] as List)
+          .map((d) => ConfigDinamica.fromJson(d as Map<String, dynamic>))
+          .toList();
+    }
+
     return CampAsignacion(
       campId: json['campId'],
       uuid: json['uuid'] ?? '',
       nombre: json['nombre'] ?? '',
       canjeTicket: json['canjeTicket'] ?? false,
       activacionRetail: json['activacionRetail'] ?? false,
+      tipoRetailtainment: json['tipoRetailtainment'],
       cantidadMomentos: json['cantidadMomentos'] ?? 1,
       medioNombre: medio?['nombre'],
       medioIcono: medio?['icono'],
       anuncianteNombre: anunciante?['nombre'],
       marcaNombre: marca?['nombre'],
       marcas: marcasList,
+      configCanje: configCanjeList,
+      configDinamica: configDinamicaList,
     );
+  }
+
+  /// Verifica si es tipo demostración
+  bool get esDemostracion => tipoRetailtainment == 'demostracion' || tipoRetailtainment == null;
+
+  /// Verifica si es tipo canje por compra
+  bool get esCanjeCompra => tipoRetailtainment == 'canje_compra';
+
+  /// Verifica si es tipo canje con dinámica
+  bool get esCanjeDinamica => tipoRetailtainment == 'canje_dinamica';
+
+  /// Obtiene la etiqueta del tipo de retailtainment
+  String get tipoLabel {
+    switch (tipoRetailtainment) {
+      case 'canje_compra':
+        return 'Canje por Compra';
+      case 'canje_dinamica':
+        return 'Canje con Dinámica';
+      case 'demostracion':
+      default:
+        return 'Demostración';
+    }
   }
 }
 
@@ -654,9 +702,9 @@ class ProductoAsignacion {
   }
 
   Map<String, dynamic> toJson() => {
-        if (upc != null) 'upc': upc,
-        if (nombre != null) 'nombre': nombre,
-        'intencionesCompra': intencionesCompra,
+        'upc': upc ?? '',
+        'nombre': nombre ?? '',
+        'intenciones': intencionesCompra,
       };
 }
 
@@ -711,6 +759,66 @@ class CuestionarioRTMT {
       };
 }
 
+/// Cierre habilitado por supervisor
+class CierreHabilitadoPorSupervisor {
+  final bool habilitado;
+  final String? supervisorId;
+  final DateTime? fecha;
+  final String? motivo;
+
+  CierreHabilitadoPorSupervisor({
+    this.habilitado = false,
+    this.supervisorId,
+    this.fecha,
+    this.motivo,
+  });
+
+  factory CierreHabilitadoPorSupervisor.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return CierreHabilitadoPorSupervisor();
+    return CierreHabilitadoPorSupervisor(
+      habilitado: json['habilitado'] ?? false,
+      supervisorId: json['supervisorId']?.toString(),
+      fecha: json['fecha'] != null ? DateTime.tryParse(json['fecha'].toString()) : null,
+      motivo: json['motivo'],
+    );
+  }
+}
+
+/// Ticket de canje registrado en la asignación
+class TicketCanjeAsignacion {
+  final String? id;
+  final String marcaId;
+  final String marcaNombre;
+  final double monto;
+  final String? fotoUrl;
+  final DateTime? fecha;
+  final Map<String, dynamic>? premioGanado;
+
+  TicketCanjeAsignacion({
+    this.id,
+    required this.marcaId,
+    required this.marcaNombre,
+    required this.monto,
+    this.fotoUrl,
+    this.fecha,
+    this.premioGanado,
+  });
+
+  factory TicketCanjeAsignacion.fromJson(Map<String, dynamic> json) {
+    return TicketCanjeAsignacion(
+      id: json['_id']?.toString() ?? json['id']?.toString(),
+      marcaId: json['marcaId']?.toString() ?? '',
+      marcaNombre: json['marcaNombre'] ?? '',
+      monto: (json['monto'] ?? 0).toDouble(),
+      fotoUrl: json['fotoUrl'],
+      fecha: json['fecha'] != null ? DateTime.tryParse(json['fecha'].toString()) : null,
+      premioGanado: json['premioGanado'] as Map<String, dynamic>?,
+    );
+  }
+
+  String? get premioNombre => premioGanado?['nombre'];
+}
+
 /// Asignacion RTMT principal
 class AsignacionRTMT {
   final String id;
@@ -729,7 +837,10 @@ class AsignacionRTMT {
   final CuestionarioRTMT cuestionario;
   final List<ProductoAsignacion> productos;
   final List<PremioEntregado> premios;
+  final List<TicketCanjeAsignacion> ticketsCanje;
+  final List<ParticipacionDinamica> participacionesDinamica;
   final bool forzarCierre;
+  final CierreHabilitadoPorSupervisor? cierreHabilitadoPorSupervisor;
   final String? notas;
   final DateTime? createdAt;
 
@@ -750,7 +861,10 @@ class AsignacionRTMT {
     required this.cuestionario,
     this.productos = const [],
     this.premios = const [],
+    this.ticketsCanje = const [],
+    this.participacionesDinamica = const [],
     this.forzarCierre = false,
+    this.cierreHabilitadoPorSupervisor,
     this.notas,
     this.createdAt,
   });
@@ -787,12 +901,27 @@ class AsignacionRTMT {
               ?.map((p) => PremioEntregado.fromJson(p))
               .toList() ??
           [],
+      ticketsCanje: (json['ticketsCanje'] as List<dynamic>?)
+              ?.map((t) => TicketCanjeAsignacion.fromJson(t))
+              .toList() ??
+          [],
+      participacionesDinamica: (json['participacionesDinamica'] as List<dynamic>?)
+              ?.map((p) => ParticipacionDinamica.fromJson(p))
+              .toList() ??
+          [],
       forzarCierre: json['forzarCierre'] ?? false,
+      cierreHabilitadoPorSupervisor: json['cierreHabilitadoPorSupervisor'] != null
+          ? CierreHabilitadoPorSupervisor.fromJson(json['cierreHabilitadoPorSupervisor'])
+          : null,
       notas: json['notas'],
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     );
   }
+
+  /// Verifica si el cierre fue habilitado por el supervisor
+  bool get cierreHabilitado =>
+      forzarCierre || (cierreHabilitadoPorSupervisor?.habilitado ?? false);
 
   /// Verifica si todos los momentos estan completados
   bool get todosLosMomentosCompletados =>
@@ -829,6 +958,8 @@ class AsignacionRTMT {
             !laborVenta.incidencia &&
             !cierreActividades.completada;
         if (!condicionesBasicas) return false;
+        // Si el supervisor habilitó el cierre, permitir avanzar
+        if (cierreHabilitado) return true;
         // Verificar si ya es hora de hacer cierre (1 hora antes del fin del turno)
         return actividad?.puedeHacerCierre ?? true;
     }
@@ -840,12 +971,18 @@ class AsignacionRTMT {
         !laborVenta.incidencia &&
         !cierreActividades.completada;
     if (!condicionesBasicas) return false;
+    // Si el supervisor habilitó el cierre, no está bloqueado
+    if (cierreHabilitado) return false;
     // Si las condiciones basicas se cumplen pero no puede hacer cierre, es por tiempo
     return !(actividad?.puedeHacerCierre ?? true);
   }
 
   /// Mensaje de cuando se habilita el cierre
   String get mensajeCierreHabilitacion {
+    // Si el supervisor habilitó el cierre, mostrar ese mensaje
+    if (cierreHabilitadoPorSupervisor?.habilitado ?? false) {
+      return 'El supervisor habilitó tu cierre';
+    }
     if (actividad?.horaHabilitaCierre == null) return '';
     return 'El cierre se habilita a las ${actividad!.horaHabilitaCierreFormateada}';
   }

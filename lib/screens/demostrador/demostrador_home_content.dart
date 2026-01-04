@@ -462,6 +462,10 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                           ),
                           const SizedBox(height: 4),
 
+                          // Tipo de Retailtainment badge
+                          _buildTipoRetailtainmentBadge(asignacion.camp?.tipoRetailtainment),
+                          const SizedBox(height: 4),
+
                           // Store
                           Text(
                             '(${asignacion.tienda.determinante}) ${asignacion.nombreTienda}',
@@ -687,6 +691,9 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
+                          // Tipo de Retailtainment badge
+                          _buildTipoRetailtainmentBadge(asignacion.camp?.tipoRetailtainment),
+                          const SizedBox(height: 4),
                           Text(
                             asignacion.nombreTienda,
                             style: TextStyle(
@@ -868,6 +875,59 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
             child: Text(
               value,
               style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Badge que muestra el tipo de Retailtainment
+  Widget _buildTipoRetailtainmentBadge(String? tipo) {
+    String label;
+    Color backgroundColor;
+    Color textColor;
+    IconData icon;
+
+    switch (tipo) {
+      case 'canje_compra':
+        label = 'Canje por Compra';
+        backgroundColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1565C0);
+        icon = Icons.receipt_long;
+        break;
+      case 'canje_dinamica':
+        label = 'Canje con Dinámica';
+        backgroundColor = const Color(0xFFFFF3E0);
+        textColor = const Color(0xFFE65100);
+        icon = Icons.emoji_events;
+        break;
+      case 'demostracion':
+      default:
+        label = 'Demostración';
+        backgroundColor = const Color(0xFFE8F5E9);
+        textColor = const Color(0xFF2E7D32);
+        icon = Icons.play_circle_outline;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
           ),
         ],

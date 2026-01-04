@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/asignacion_rtmt.dart';
+import '../models/ticket_canje.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/demostrador_service.dart';
@@ -421,7 +422,39 @@ class DemostradorProvider extends ChangeNotifier {
     }
   }
 
-  /// Force close (supervisor)
+  /// Habilitar cierre (supervisor) - Solo habilita el acceso para que el demostrador tome su foto
+  Future<bool> habilitarCierre({required String motivo}) async {
+    if (_asignacionActual == null) {
+      _errorMessage = 'No hay asignación seleccionada';
+      return false;
+    }
+
+    _status = DemostradorStatus.submitting;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _service.habilitarCierre(
+        asignacionId: _asignacionActual!.id,
+        motivo: motivo,
+        supervisorId: _currentUser?.id,
+      );
+
+      _asignacionActual = result;
+      await _updateAsignacionInList(result);
+
+      _status = DemostradorStatus.submitted;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error al habilitar cierre: $e';
+      _status = DemostradorStatus.error;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Force close (supervisor) - Completa automáticamente el cierre
   Future<bool> forzarCierre({required String motivo}) async {
     if (_asignacionActual == null) {
       _errorMessage = 'No hay asignación seleccionada';
@@ -481,6 +514,109 @@ class DemostradorProvider extends ChangeNotifier {
     _status = DemostradorStatus.loaded;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Register ticket canje (canje por compra)
+  Future<bool> registrarTicketCanje(TicketCanje ticket, File foto) async {
+    if (_asignacionActual == null) {
+      _errorMessage = 'No hay asignación seleccionada';
+      return false;
+    }
+
+    _status = DemostradorStatus.submitting;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Convert image to base64
+      final base64 = await _service.convertImageToBase64(foto);
+      final base64WithPrefix = 'data:image/jpeg;base64,$base64';
+
+      final result = await _service.registrarTicketCanje(
+        asignacionId: _asignacionActual!.id ?? '',
+        marcaId: ticket.marcaId,
+        marcaNombre: ticket.marcaNombre,
+        monto: ticket.monto,
+        fotoBase64: base64WithPrefix,
+        latitud: ticket.latitud,
+        longitud: ticket.longitud,
+        premioGanado: ticket.premioGanado,
+      );
+
+      if (result != null) {
+        // Reload assignments to get updated data
+        await loadAsignacionesHoy();
+        // Re-select current assignment
+        if (_asignacionActual != null) {
+          _asignacionActual = _asignacionesHoy.firstWhere(
+            (a) => a.id == _asignacionActual!.id,
+            orElse: () => _asignacionActual!,
+          );
+        }
+      }
+
+      _status = DemostradorStatus.submitted;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error al registrar ticket: $e';
+      _status = DemostradorStatus.error;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Register participation in dinamica (canje con dinámica)
+  Future<bool> registrarParticipacionDinamica({
+    required String dinamicaNombre,
+    required File foto,
+    Ubicacion? ubicacion,
+    String? recompensaEntregada,
+  }) async {
+    if (_asignacionActual == null) {
+      _errorMessage = 'No hay asignación seleccionada';
+      return false;
+    }
+
+    _status = DemostradorStatus.submitting;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Convert image to base64
+      final base64 = await _service.convertImageToBase64(foto);
+      final base64WithPrefix = 'data:image/jpeg;base64,$base64';
+
+      final result = await _service.registrarParticipacionDinamica(
+        asignacionId: _asignacionActual!.id ?? '',
+        dinamicaNombre: dinamicaNombre,
+        fotoBase64: base64WithPrefix,
+        latitud: ubicacion?.lat,
+        longitud: ubicacion?.lng,
+        recompensaEntregada: recompensaEntregada,
+      );
+
+      if (result != null) {
+        // Reload assignments to get updated data
+        await loadAsignacionesHoy();
+        // Re-select current assignment
+        if (_asignacionActual != null) {
+          _asignacionActual = _asignacionesHoy.firstWhere(
+            (a) => a.id == _asignacionActual!.id,
+            orElse: () => _asignacionActual!,
+          );
+        }
+      }
+
+      _status = DemostradorStatus.submitted;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error al registrar participación: $e';
+      _status = DemostradorStatus.error;
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Get next moment to complete

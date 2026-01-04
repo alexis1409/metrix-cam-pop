@@ -64,30 +64,66 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo/Title
-                  Icon(
-                    Icons.camera_alt_outlined,
-                    size: 80,
-                    color: AppColors.primaryStart,
+                  // Logo Metrix
+                  Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE52D27),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFE52D27).withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/icon/icon.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  // App name - Metrix Cam
                   Text(
-                    'Metrix CAM',
+                    'Metrix Cam',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryStart,
+                          fontWeight: FontWeight.w800,
+                          color: context.textPrimaryColor,
+                          letterSpacing: -0.5,
                         ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Material POP',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: context.textSecondaryColor,
+                  const SizedBox(height: 6),
+                  // Eslogan
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE52D27).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Inteligencia Analítica',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFE52D27),
+                          letterSpacing: 1,
                         ),
-                    textAlign: TextAlign.center,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
 
                   // Error message
                   Consumer<AuthProvider>(
@@ -221,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Version
                   Text(
-                    'v1.0.0',
+                    'v1.1.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.textMutedColor,
                         ),

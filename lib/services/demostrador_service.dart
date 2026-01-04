@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/asignacion_rtmt.dart';
+import '../models/ticket_canje.dart';
 import 'api_service.dart';
 
 /// Servicio para manejar las operaciones del demostrador RTMT
@@ -388,7 +389,31 @@ class DemostradorService {
     }
   }
 
-  /// Forzar cierre (supervisor)
+  /// Habilitar cierre (supervisor) - Solo habilita el acceso para que el demostrador tome su foto
+  Future<AsignacionRTMT> habilitarCierre({
+    required String asignacionId,
+    required String motivo,
+    String? supervisorId,
+  }) async {
+    try {
+      debugPrint('📋 [DemostradorService] Enabling close access');
+
+      final response = await _apiService.post(
+        '/asignaciones-unified/$asignacionId/habilitar-cierre',
+        {
+          'motivo': motivo,
+          if (supervisorId != null) 'supervisorId': supervisorId,
+        },
+      );
+
+      return AsignacionRTMT.fromJson(response);
+    } catch (e) {
+      debugPrint('❌ [DemostradorService] Error enabling close: $e');
+      rethrow;
+    }
+  }
+
+  /// Forzar cierre (supervisor) - Completa automáticamente el cierre
   Future<AsignacionRTMT> forzarCierre({
     required String asignacionId,
     required String motivo,
@@ -398,7 +423,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Forcing close');
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/forzar-cierre',
+        '/asignaciones-unified/$asignacionId/forzar-cierre-rtmt',
         {
           'motivo': motivo,
           if (supervisorId != null) 'supervisorId': supervisorId,
@@ -408,6 +433,97 @@ class DemostradorService {
       return AsignacionRTMT.fromJson(response);
     } catch (e) {
       debugPrint('❌ [DemostradorService] Error forcing close: $e');
+      rethrow;
+    }
+  }
+
+  /// Registrar ticket de canje por compra
+  Future<Map<String, dynamic>?> registrarTicketCanje({
+    required String asignacionId,
+    required String marcaId,
+    required String marcaNombre,
+    required double monto,
+    required String fotoBase64,
+    double? latitud,
+    double? longitud,
+    PremioGanado? premioGanado,
+  }) async {
+    try {
+      debugPrint('📋 [DemostradorService] Registering ticket canje');
+      debugPrint('📋 [DemostradorService] Marca: $marcaNombre, Monto: $monto');
+
+      final body = <String, dynamic>{
+        'marcaId': marcaId,
+        'marcaNombre': marcaNombre,
+        'monto': monto,
+        'fotoBase64': fotoBase64,
+        'fecha': DateTime.now().toIso8601String(),
+      };
+
+      if (latitud != null && longitud != null) {
+        body['ubicacion'] = {
+          'lat': latitud,
+          'lng': longitud,
+        };
+      }
+
+      if (premioGanado != null) {
+        body['premioGanado'] = premioGanado.toJson();
+      }
+
+      final response = await _apiService.post(
+        '/asignaciones-unified/$asignacionId/ticket-canje',
+        body,
+      );
+
+      debugPrint('📋 [DemostradorService] Ticket registered successfully');
+      return response;
+    } catch (e) {
+      debugPrint('❌ [DemostradorService] Error registering ticket canje: $e');
+      rethrow;
+    }
+  }
+
+  /// Registrar participación en dinámica
+  Future<Map<String, dynamic>?> registrarParticipacionDinamica({
+    required String asignacionId,
+    required String dinamicaNombre,
+    required String fotoBase64,
+    double? latitud,
+    double? longitud,
+    String? recompensaEntregada,
+  }) async {
+    try {
+      debugPrint('📋 [DemostradorService] Registering dinamica participation');
+      debugPrint('📋 [DemostradorService] Dinamica: $dinamicaNombre');
+
+      final body = <String, dynamic>{
+        'dinamicaNombre': dinamicaNombre,
+        'fotoBase64': fotoBase64,
+        'fecha': DateTime.now().toIso8601String(),
+        'completada': true,
+      };
+
+      if (latitud != null && longitud != null) {
+        body['ubicacion'] = {
+          'lat': latitud,
+          'lng': longitud,
+        };
+      }
+
+      if (recompensaEntregada != null) {
+        body['recompensaEntregada'] = recompensaEntregada;
+      }
+
+      final response = await _apiService.post(
+        '/asignaciones-unified/$asignacionId/participacion-dinamica',
+        body,
+      );
+
+      debugPrint('📋 [DemostradorService] Dinamica participation registered successfully');
+      return response;
+    } catch (e) {
+      debugPrint('❌ [DemostradorService] Error registering dinamica participation: $e');
       rethrow;
     }
   }
