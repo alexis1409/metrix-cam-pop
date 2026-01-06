@@ -297,10 +297,10 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
     // Calcular los que faltan
     final momentosFaltantes = (momentosRequeridos - momentosTomados).clamp(0, momentosRequeridos);
 
-    // Si solo es 1 momento requerido, no mostrar contador
-    if (momentosRequeridos <= 1) {
-      return const SizedBox.shrink();
-    }
+    // Debug para ver los valores
+    debugPrint('📸 [MomentosCounter] cantidadMomentos: $momentosRequeridos, tomados: $momentosTomados, faltan: $momentosFaltantes');
+
+    // Siempre mostrar el contador para Labor de Venta (ya estamos dentro del if del widget.momento)
 
     return Column(
       children: [

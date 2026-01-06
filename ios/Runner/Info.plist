@@ -53,5 +53,10 @@
 	<string>Esta app necesita tu ubicación para detectar la tienda más cercana.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Esta app necesita tu ubicación para detectar la tienda más cercana.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

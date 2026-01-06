@@ -211,11 +211,19 @@ class DemostradorDetailScreen extends StatelessWidget {
     AsignacionRTMT asignacion,
     DemostradorProvider provider,
   ) {
+    // Verificar si Labor de Venta tiene todos los momentos requeridos
+    final momentosRequeridos = asignacion.camp?.cantidadMomentos ?? 1;
+    final momentosTomados = asignacion.laborVenta.evidencias.length;
+    final laborVentaCompleta = momentosTomados >= momentosRequeridos;
+
+    // El cierre solo se habilita si Labor de Venta tiene todos los momentos
+    final puedeAvanzarACierre = asignacion.puedeAvanzarA(MomentoRTMT.cierreActividades) && laborVentaCompleta;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Momentos del Día',
+          'Actividad del Día',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -243,7 +251,7 @@ class DemostradorDetailScreen extends StatelessWidget {
           context,
           MomentoRTMT.cierreActividades,
           asignacion.cierreActividades,
-          asignacion.puedeAvanzarA(MomentoRTMT.cierreActividades),
+          puedeAvanzarACierre,
           provider,
         ),
       ],
@@ -271,10 +279,29 @@ class DemostradorDetailScreen extends StatelessWidget {
     IconData statusIcon;
     String statusText;
 
+    // Para Labor de Venta, verificar si se cumplieron todos los momentos requeridos
+    final momentosRequeridos = asignacion?.camp?.cantidadMomentos ?? 1;
+    final momentosTomados = registro.evidencias.length;
+    final laborVentaCompleta = momento != MomentoRTMT.laborVenta ||
+        (registro.completada && momentosTomados >= momentosRequeridos);
+
+    // Verificar si Inicio de Actividades está completado (para bloquear Labor de Venta)
+    final inicioCompletado = asignacion?.inicioActividades.completada ?? false;
+
     if (registro.incidencia) {
       statusColor = Colors.orange;
       statusIcon = Icons.warning;
       statusText = 'Incidencia';
+    } else if (momento == MomentoRTMT.laborVenta && !inicioCompletado) {
+      // Labor de Venta bloqueado porque Inicio no está completado
+      statusColor = Colors.grey;
+      statusIcon = Icons.lock;
+      statusText = 'Bloqueado';
+    } else if (momento == MomentoRTMT.laborVenta && momentosTomados < momentosRequeridos) {
+      // Labor de Venta con momentos pendientes (inicio ya completado)
+      statusColor = Colors.blue;
+      statusIcon = Icons.play_circle;
+      statusText = 'Pendiente';
     } else if (registro.completada) {
       statusColor = Colors.green;
       statusIcon = Icons.check_circle;
@@ -297,12 +324,25 @@ class DemostradorDetailScreen extends StatelessWidget {
       statusText = 'Bloqueado';
     }
 
+    // Determinar si la tarjeta debe ser clickeable
+    final bool estaActivo;
+    if (momento == MomentoRTMT.laborVenta) {
+      // Labor de Venta: activo si inicio está completado y faltan momentos
+      estaActivo = asignacion?.inicioActividades.completada == true && momentosTomados < momentosRequeridos;
+    } else if (momento == MomentoRTMT.inicioActividades) {
+      // Inicio de Actividades: activo si puede avanzar y no está completado
+      estaActivo = canAdvance && !registro.completada;
+    } else {
+      // Cierre de Actividades: activo si puede avanzar y labor de venta está completa
+      estaActivo = canAdvance && !registro.completada;
+    }
+
     return Card(
       color: context.surfaceColor,
-      elevation: canAdvance && !registro.completada ? 3 : 1,
+      elevation: estaActivo ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: canAdvance && !registro.completada
+        side: estaActivo
             ? const BorderSide(color: Colors.blue, width: 2)
             : (cierreBloqueadoPorTiempo
                 ? const BorderSide(color: Colors.amber, width: 2)
@@ -310,7 +350,7 @@ class DemostradorDetailScreen extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: canAdvance && !registro.completada
+        onTap: estaActivo
             ? () => _navigateToMomento(context, momento)
             : (registro.incidencia
                 ? () => _showCorregirIncidenciaDialog(context, momento, provider)
@@ -353,6 +393,27 @@ class DemostradorDetailScreen extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                        // Mostrar contador de momentos para Labor de Venta
+                        if (momento == MomentoRTMT.laborVenta && asignacion != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: context.isDarkMode
+                                  ? Colors.blue.withOpacity(0.2)
+                                  : Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${registro.evidencias.length}/${asignacion.camp?.cantidadMomentos ?? 1}',
+                              style: TextStyle(
+                                color: Colors.blue[context.isDarkMode ? 300 : 700],
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                         if (registro.fecha != null) ...[
                           const SizedBox(width: 8),
                           Text(
@@ -418,7 +479,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              if (canAdvance && !registro.completada)
+              if (estaActivo)
                 const Icon(Icons.arrow_forward_ios, color: Colors.blue)
               else if (registro.incidencia)
                 TextButton(

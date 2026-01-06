@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -67,90 +68,38 @@ class _ProfileContentState extends State<ProfileContent> {
 
   Future<void> _loadStats() async {
     try {
-      final demostradorProvider = context.read<DemostradorProvider>();
+      final apiService = context.read<ApiService>();
 
-      // Cargar asignaciones si no están cargadas
-      if (demostradorProvider.asignacionesHoy.isEmpty) {
-        await demostradorProvider.loadAsignacionesHoy();
-      }
+      // Obtener estadísticas del nuevo endpoint
+      final statsResponse = await apiService.get('/asignaciones/demostrador/estadisticas');
+      debugPrint('📊 [Stats] Response: $statsResponse');
 
-      // Combinar todas las asignaciones del usuario
-      final asignaciones = [
-        ...demostradorProvider.asignacionesPendientes,
-        ...demostradorProvider.asignacionesCompletadas,
-      ];
-      final now = DateTime.now();
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final startOfMonth = DateTime(now.year, now.month, 1);
-
-      // Calcular activaciones (asignaciones completadas)
-      int activacionesHoy = 0;
-      int activacionesSemana = 0;
-      int activacionesMes = 0;
-
-      // Campañas únicas
-      final Set<String> campaniasActivasIds = {};
-      final Set<String> campaniasCompletadasIds = {};
-
-      for (final asig in asignaciones) {
-        final fecha = asig.actividad?.fechaDate ?? asig.createdAt ?? now;
-        final estaCompletada = asig.estado == EstadoAsignacion.completada;
-
-        // Contar activaciones completadas
-        if (estaCompletada) {
-          if (fecha.year == now.year && fecha.month == now.month && fecha.day == now.day) {
-            activacionesHoy++;
-          }
-          if (fecha.isAfter(startOfWeek.subtract(const Duration(days: 1)))) {
-            activacionesSemana++;
-          }
-          if (fecha.isAfter(startOfMonth.subtract(const Duration(days: 1)))) {
-            activacionesMes++;
-          }
-        }
-
-        // Campañas únicas del usuario
-        final campId = asig.camp?.campId ?? asig.camp?.uuid;
-        if (campId != null) {
-          if (estaCompletada) {
-            campaniasCompletadasIds.add(campId);
-          } else {
-            campaniasActivasIds.add(campId);
-          }
-        }
-      }
-
-      // Calcular efectividad (% de asignaciones completadas)
-      final totalAsignaciones = asignaciones.length;
-      final completadas = asignaciones.where((a) => a.estado == EstadoAsignacion.completada).length;
-      final efectividad = totalAsignaciones > 0
-          ? ((completadas / totalAsignaciones) * 100).round()
-          : 0;
+      final campanias = statsResponse['campanias'] ?? {};
+      final asignacionesMes = statsResponse['asignacionesMes'] ?? {};
 
       if (mounted) {
         setState(() {
           _stats = {
-            'activacionesHoy': activacionesHoy,
-            'activacionesSemana': activacionesSemana,
-            'activacionesMes': activacionesMes,
-            'campaniasActivas': campaniasActivasIds.length,
-            'campaniasCompletadas': campaniasCompletadasIds.length,
-            'efectividad': efectividad,
+            'campaniasProximas': campanias['proximas'] ?? 0,
+            'campaniasActivas': campanias['activas'] ?? 0,
+            'campaniasTerminadas': campanias['terminadas'] ?? 0,
+            'asignacionesCompletas': asignacionesMes['completas'] ?? 0,
+            'asignacionesIncompletas': asignacionesMes['incompletas'] ?? 0,
           };
           _isLoadingStats = false;
         });
       }
     } catch (e) {
+      debugPrint('❌ [Stats] Error loading stats: $e');
       if (mounted) {
         setState(() {
           _isLoadingStats = false;
           _stats = {
-            'activacionesHoy': 0,
-            'activacionesSemana': 0,
-            'activacionesMes': 0,
+            'campaniasProximas': 0,
             'campaniasActivas': 0,
-            'campaniasCompletadas': 0,
-            'efectividad': 0,
+            'campaniasTerminadas': 0,
+            'asignacionesCompletas': 0,
+            'asignacionesIncompletas': 0,
           };
         });
       }
@@ -300,36 +249,28 @@ class _ProfileContentState extends State<ProfileContent> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Subtítulo Activaciones
-                _buildSubtitle('Activaciones'),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _buildStatCard('Hoy', '${_stats['activacionesHoy'] ?? 0}', 'demos', AppColors.primaryStart)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Semana', '${_stats['activacionesSemana'] ?? 0}', 'demos', AppColors.secondaryStart)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Mes', '${_stats['activacionesMes'] ?? 0}', 'demos', AppColors.success)),
-                  ],
-                ),
-                const SizedBox(height: 16),
                 // Subtítulo Campañas
                 _buildSubtitle('Campañas'),
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Expanded(child: _buildStatCard('Próximas', '${_stats['campaniasProximas'] ?? 0}', 'campañas', Colors.orange)),
+                    const SizedBox(width: 12),
                     Expanded(child: _buildStatCard('Activas', '${_stats['campaniasActivas'] ?? 0}', 'campañas', Colors.blue)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Terminadas', '${_stats['campaniasCompletadas'] ?? 0}', 'campañas', Colors.teal)),
+                    Expanded(child: _buildStatCard('Terminadas', '${_stats['campaniasTerminadas'] ?? 0}', 'campañas', AppColors.success)),
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Subtítulo Rendimiento
-                _buildSubtitle('Rendimiento'),
+                // Subtítulo Asignaciones del Mes
+                _buildSubtitle('Asignaciones del Mes'),
                 const SizedBox(height: 8),
-                _buildProgressCard(
-                  'Efectividad',
-                  (_stats['efectividad'] ?? 0).toDouble(),
+                Row(
+                  children: [
+                    Expanded(child: _buildStatCard('Completas', '${_stats['asignacionesCompletas'] ?? 0}', 'asignaciones', AppColors.success)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildStatCard('Incompletas', '${_stats['asignacionesIncompletas'] ?? 0}', 'asignaciones', Colors.red)),
+                  ],
                 ),
               ],
             ),

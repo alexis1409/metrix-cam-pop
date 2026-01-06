@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../core/theme/app_theme.dart';
 
 class CameraScreen extends StatefulWidget {
   final int maxPhotos;
@@ -24,6 +23,29 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   String? _errorMessage;
   int _selectedCameraIndex = 0;
   final List<String> _capturedPhotos = [];
+
+  // Zoom controls
+  double _currentZoom = 1.0;
+  double _minZoom = 1.0;
+  double _maxZoom = 1.0;
+  double _baseZoom = 1.0;
+
+  // Flash control
+  FlashMode _flashMode = FlashMode.off;
+
+  // Zoom presets for quick access
+  List<double> get _zoomPresets {
+    final presets = <double>[];
+    // Add 0.5x if available (ultra wide)
+    if (_minZoom <= 0.6) presets.add(0.5);
+    // Always add 1x
+    presets.add(1.0);
+    // Add 2x if available
+    if (_maxZoom >= 2.0) presets.add(2.0);
+    // Add 5x if available
+    if (_maxZoom >= 5.0) presets.add(5.0);
+    return presets;
+  }
 
   @override
   void initState() {
@@ -58,10 +80,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       _cameras = await availableCameras();
       debugPrint('📷 [CameraScreen] Found ${_cameras.length} cameras');
 
-      for (int i = 0; i < _cameras.length; i++) {
-        debugPrint('📷 [CameraScreen] Camera $i: ${_cameras[i].name} - ${_cameras[i].lensDirection}');
-      }
-
       if (_cameras.isEmpty) {
         setState(() {
           _errorMessage = 'No se encontraron cámaras disponibles';
@@ -69,7 +87,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         return;
       }
 
-      // Find the back camera (prefer wide angle over telephoto/ultra-wide)
+      // Find the back camera
       int backCameraIndex = _cameras.indexWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
       );
@@ -102,7 +120,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
     try {
       await _controller!.initialize();
-      debugPrint('📷 [CameraScreen] Camera initialized successfully');
+
+      // Get zoom limits
+      _minZoom = await _controller!.getMinZoomLevel();
+      _maxZoom = await _controller!.getMaxZoomLevel();
+      _currentZoom = 1.0.clamp(_minZoom, _maxZoom);
+      await _controller!.setZoomLevel(_currentZoom);
+
+      debugPrint('📷 [CameraScreen] Camera initialized. Zoom: $_minZoom - $_maxZoom');
 
       if (mounted) {
         setState(() {
@@ -120,6 +145,61 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
   }
 
+  // Zoom methods
+  Future<void> _setZoom(double zoom) async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    final newZoom = zoom.clamp(_minZoom, _maxZoom);
+    await _controller!.setZoomLevel(newZoom);
+    setState(() => _currentZoom = newZoom);
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _baseZoom = _currentZoom;
+  }
+
+  Future<void> _onScaleUpdate(ScaleUpdateDetails details) async {
+    final newZoom = _baseZoom * details.scale;
+    await _setZoom(newZoom);
+  }
+
+  // Flash methods
+  Future<void> _toggleFlash() async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    FlashMode newMode;
+    switch (_flashMode) {
+      case FlashMode.off:
+        newMode = FlashMode.auto;
+        break;
+      case FlashMode.auto:
+        newMode = FlashMode.always;
+        break;
+      case FlashMode.always:
+        newMode = FlashMode.torch;
+        break;
+      case FlashMode.torch:
+        newMode = FlashMode.off;
+        break;
+    }
+
+    await _controller!.setFlashMode(newMode);
+    setState(() => _flashMode = newMode);
+  }
+
+  IconData _getFlashIcon() {
+    switch (_flashMode) {
+      case FlashMode.off:
+        return Icons.flash_off;
+      case FlashMode.auto:
+        return Icons.flash_auto;
+      case FlashMode.always:
+        return Icons.flash_on;
+      case FlashMode.torch:
+        return Icons.highlight;
+    }
+  }
+
   Future<void> _takePicture() async {
     if (_controller == null || !_controller!.value.isInitialized || _isTakingPicture) {
       return;
@@ -133,9 +213,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     setState(() => _isTakingPicture = true);
 
     try {
-      debugPrint('📷 [CameraScreen] Taking picture...');
       final XFile photo = await _controller!.takePicture();
-      debugPrint('📷 [CameraScreen] Picture taken: ${photo.path}');
 
       // Copy to app documents directory
       final appDir = await getApplicationDocumentsDirectory();
@@ -143,7 +221,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final savedPath = '${appDir.path}/$fileName';
 
       await File(photo.path).copy(savedPath);
-      debugPrint('📷 [CameraScreen] Photo saved to: $savedPath');
 
       if (mounted) {
         setState(() {
@@ -174,7 +251,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     if (_capturedPhotos.isNotEmpty) {
       setState(() {
         final lastPath = _capturedPhotos.removeLast();
-        // Optionally delete the file
         try {
           File(lastPath).deleteSync();
         } catch (e) {
@@ -191,6 +267,42 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     await _setupCamera(_cameras[_selectedCameraIndex]);
   }
 
+  // Build zoom preset button (iPhone style)
+  Widget _buildZoomButton(double zoom) {
+    final isSelected = (_currentZoom - zoom).abs() < 0.1;
+    final isAvailable = zoom >= _minZoom && zoom <= _maxZoom;
+
+    String label;
+    if (zoom < 1) {
+      label = '.${(zoom * 10).toInt()}';
+    } else {
+      label = zoom.toInt().toString();
+    }
+
+    return GestureDetector(
+      onTap: isAvailable ? () => _setZoom(zoom) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: isSelected ? 45 : 35,
+        height: isSelected ? 45 : 35,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? Colors.amber.withOpacity(0.3) : Colors.transparent,
+        ),
+        child: Center(
+          child: Text(
+            isSelected ? '${zoom}x' : label,
+            style: TextStyle(
+              color: isSelected ? Colors.amber : (isAvailable ? Colors.white : Colors.white38),
+              fontSize: isSelected ? 14 : 16,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,12 +310,28 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       body: SafeArea(
         child: Stack(
           children: [
-            // Camera preview
+            // Camera preview con proporción 4:3 y zoom con pellizco
             if (_isInitialized && _controller != null)
-              Center(
-                child: AspectRatio(
-                  aspectRatio: 1 / _controller!.value.aspectRatio,
-                  child: CameraPreview(_controller!),
+              GestureDetector(
+                onScaleStart: _onScaleStart,
+                onScaleUpdate: _onScaleUpdate,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 3 / 4, // Proporción 4:3 en vertical
+                    child: ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _controller!.value.previewSize?.height ?? 1,
+                            height: _controller!.value.previewSize?.width ?? 1,
+                            child: CameraPreview(_controller!),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               )
             else if (_errorMessage != null)
@@ -213,11 +341,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 64,
-                      ),
+                      const Icon(Icons.error_outline, color: Colors.red, size: 64),
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
@@ -262,28 +386,46 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                       icon: const Icon(Icons.close, color: Colors.white, size: 28),
                       onPressed: _finishCapture,
                     ),
-                    // Photo counter
-                    if (_capturedPhotos.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(30),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_capturedPhotos.length}/${widget.maxPhotos}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                    // Flash button
+                    if (_isInitialized)
+                      GestureDetector(
+                        onTap: _toggleFlash,
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Colors.black45,
+                            shape: BoxShape.circle,
                           ),
+                          child: Icon(_getFlashIcon(), color: Colors.white, size: 24),
                         ),
                       ),
-                    if (_cameras.length > 1)
-                      IconButton(
-                        icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 28),
-                        onPressed: _switchCamera,
-                      ),
+                    Row(
+                      children: [
+                        // Photo counter
+                        if (_capturedPhotos.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(30),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${_capturedPhotos.length}/${widget.maxPhotos}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        if (_cameras.length > 1)
+                          IconButton(
+                            icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 28),
+                            onPressed: _switchCamera,
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -310,6 +452,26 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Zoom presets (iPhone style)
+                    if (_isInitialized && _maxZoom > _minZoom)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: _zoomPresets.map((zoom) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: _buildZoomButton(zoom),
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     // Thumbnails row
                     if (_capturedPhotos.isNotEmpty)
                       Container(
