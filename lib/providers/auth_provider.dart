@@ -35,22 +35,31 @@ class AuthProvider extends ChangeNotifier {
   bool get requiresTwoFactor => _status == AuthStatus.requiresTwoFactor;
 
   Future<void> checkAuthStatus() async {
+    debugPrint('>>> AuthProvider: checkAuthStatus started');
     _status = AuthStatus.loading;
     notifyListeners();
 
     try {
+      debugPrint('>>> AuthProvider: calling isLoggedIn...');
       final isLoggedIn = await _authService.isLoggedIn();
+      debugPrint('>>> AuthProvider: isLoggedIn = $isLoggedIn');
       if (isLoggedIn) {
+        debugPrint('>>> AuthProvider: restoring session...');
         await _authService.restoreSession();
+        debugPrint('>>> AuthProvider: getting saved user...');
         _user = await _authService.getSavedUser();
+        debugPrint('>>> AuthProvider: user loaded: ${_user?.name}');
         _status = AuthStatus.authenticated;
       } else {
+        debugPrint('>>> AuthProvider: not logged in, status = unauthenticated');
         _status = AuthStatus.unauthenticated;
       }
     } catch (e) {
+      debugPrint('>>> AuthProvider ERROR: $e');
       _status = AuthStatus.unauthenticated;
     }
 
+    debugPrint('>>> AuthProvider: checkAuthStatus finished, status = $_status');
     notifyListeners();
   }
 

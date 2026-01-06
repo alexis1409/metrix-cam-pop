@@ -227,6 +227,10 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
             const SizedBox(height: 24),
 
+            // Contador de momentos para Labor de Venta
+            if (widget.momento == MomentoRTMT.laborVenta)
+              _buildMomentosCounter(),
+
             // Brand selector for Labor de Venta
             if (widget.momento == MomentoRTMT.laborVenta)
               _buildProductSelector(),
@@ -280,6 +284,148 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
       case MomentoRTMT.cierreActividades:
         return 'Toma una foto y completa el cuestionario de cierre';
     }
+  }
+
+  Widget _buildMomentosCounter() {
+    final provider = context.watch<DemostradorProvider>();
+    final asignacion = provider.asignacionActual;
+
+    // Obtener cantidad de momentos requeridos de la campaña
+    final momentosRequeridos = asignacion?.camp?.cantidadMomentos ?? 1;
+    // Obtener cantidad de evidencias ya tomadas en labor de venta
+    final momentosTomados = asignacion?.laborVenta.evidencias.length ?? 0;
+    // Calcular los que faltan
+    final momentosFaltantes = (momentosRequeridos - momentosTomados).clamp(0, momentosRequeridos);
+
+    // Si solo es 1 momento requerido, no mostrar contador
+    if (momentosRequeridos <= 1) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_alt, color: Colors.blue[700], size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Progreso de Momentos',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildCounterItem(
+                    'Requeridos',
+                    momentosRequeridos.toString(),
+                    Colors.grey[600]!,
+                    Icons.photo_library,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.blue[200],
+                  ),
+                  _buildCounterItem(
+                    'Tomados',
+                    momentosTomados.toString(),
+                    Colors.green[600]!,
+                    Icons.check_circle,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.blue[200],
+                  ),
+                  _buildCounterItem(
+                    'Faltan',
+                    momentosFaltantes.toString(),
+                    momentosFaltantes > 0 ? Colors.orange[600]! : Colors.green[600]!,
+                    momentosFaltantes > 0 ? Icons.pending : Icons.done_all,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Barra de progreso
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: momentosRequeridos > 0
+                      ? momentosTomados / momentosRequeridos
+                      : 0,
+                  backgroundColor: Colors.blue[100],
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    momentosTomados >= momentosRequeridos
+                        ? Colors.green
+                        : Colors.blue[600]!,
+                  ),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                momentosFaltantes > 0
+                    ? 'Toma ${momentosFaltantes == 1 ? "1 foto más" : "$momentosFaltantes fotos más"} para completar'
+                    : '¡Todos los momentos completados!',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: momentosFaltantes > 0 ? Colors.blue[700] : Colors.green[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildCounterItem(String label, String value, Color color, IconData icon) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildProductSelector() {

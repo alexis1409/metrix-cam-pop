@@ -18,7 +18,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Fetching today assignments...');
       debugPrint('📋 [DemostradorService] Token presente: ${_apiService.hasToken}');
 
-      final response = await _apiService.getList('/asignaciones-unified/demostrador/hoy');
+      final response = await _apiService.getList('/asignaciones/demostrador/hoy');
 
       debugPrint('📋 [DemostradorService] Response received: ${response.length} items');
 
@@ -48,7 +48,7 @@ class DemostradorService {
     try {
       debugPrint('📋 [DemostradorService] Fetching assignments with estado: $estado');
 
-      final response = await _apiService.getList('/asignaciones-unified/demostrador/estado/$estado');
+      final response = await _apiService.getList('/asignaciones/demostrador/estado/$estado');
 
       final asignaciones = response
           .map((json) => AsignacionRTMT.fromJson(json))
@@ -67,7 +67,7 @@ class DemostradorService {
     try {
       debugPrint('📋 [DemostradorService] Fetching assignment: $id');
 
-      final response = await _apiService.get('/asignaciones-unified/$id');
+      final response = await _apiService.get('/asignaciones/$id');
       return AsignacionRTMT.fromJson(response);
     } catch (e) {
       debugPrint('❌ [DemostradorService] Error fetching assignment: $e');
@@ -80,7 +80,7 @@ class DemostradorService {
     try {
       debugPrint('📋 [DemostradorService] Getting current view for: $asignacionId');
 
-      final response = await _apiService.get('/asignaciones-unified/$asignacionId/vista-actual');
+      final response = await _apiService.get('/asignaciones/$asignacionId/vista-actual');
       return response;
     } catch (e) {
       debugPrint('❌ [DemostradorService] Error getting current view: $e');
@@ -116,7 +116,7 @@ class DemostradorService {
       if (marcaNombre != null) body['marcaNombre'] = marcaNombre;
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/momento-rtmt',
+        '/asignaciones/$asignacionId/momento-rtmt',
         body,
       );
 
@@ -194,7 +194,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Marking incidencia for: ${momento.value}');
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/incidencia',
+        '/asignaciones/$asignacionId/incidencia',
         {
           'momento': momento.value,
           if (descripcion != null) 'descripcion': descripcion,
@@ -231,7 +231,7 @@ class DemostradorService {
       if (notas != null) body['notas'] = notas;
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/corregir-incidencia',
+        '/asignaciones/$asignacionId/corregir-incidencia',
         body,
       );
 
@@ -251,7 +251,7 @@ class DemostradorService {
     try {
       debugPrint('📋 [DemostradorService] Calculating prize for amount: $monto');
 
-      String endpoint = '/asignaciones-unified/$asignacionId/calcular-premio?monto=$monto';
+      String endpoint = '/asignaciones/$asignacionId/calcular-premio?monto=$monto';
       if (paisId != null) endpoint += '&paisId=$paisId';
 
       final response = await _apiService.get(endpoint);
@@ -282,7 +282,7 @@ class DemostradorService {
       if (ubicacion != null) body['ubicacion'] = ubicacion.toJson();
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/ticket',
+        '/asignaciones/$asignacionId/ticket',
         body,
       );
 
@@ -304,7 +304,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Redeeming prize: $premioNombre');
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/canjear-premio',
+        '/asignaciones/$asignacionId/canjear-premio',
         {
           'ticketId': ticketId,
           'premioNombre': premioNombre,
@@ -338,7 +338,7 @@ class DemostradorService {
       }
 
       final response = await _apiService.patch(
-        '/asignaciones-unified/$asignacionId/cuestionario',
+        '/asignaciones/$asignacionId/cuestionario',
         body,
       );
 
@@ -378,7 +378,7 @@ class DemostradorService {
       if (notas != null) body['notas'] = notas;
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/cierre-rtmt',
+        '/asignaciones/$asignacionId/cierre-rtmt',
         body,
       );
 
@@ -399,7 +399,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Enabling close access');
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/habilitar-cierre',
+        '/asignaciones/$asignacionId/habilitar-cierre',
         {
           'motivo': motivo,
           if (supervisorId != null) 'supervisorId': supervisorId,
@@ -423,7 +423,7 @@ class DemostradorService {
       debugPrint('📋 [DemostradorService] Forcing close');
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/forzar-cierre-rtmt',
+        '/asignaciones/$asignacionId/forzar-cierre-rtmt',
         {
           'motivo': motivo,
           if (supervisorId != null) 'supervisorId': supervisorId,
@@ -472,7 +472,7 @@ class DemostradorService {
       }
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/ticket-canje',
+        '/asignaciones/$asignacionId/ticket-canje',
         body,
       );
 
@@ -516,7 +516,7 @@ class DemostradorService {
       }
 
       final response = await _apiService.post(
-        '/asignaciones-unified/$asignacionId/participacion-dinamica',
+        '/asignaciones/$asignacionId/participacion-dinamica',
         body,
       );
 

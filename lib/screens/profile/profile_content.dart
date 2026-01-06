@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/asignacion_rtmt.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/demostrador_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
@@ -40,8 +42,11 @@ class _ProfileContentState extends State<ProfileContent> {
     _userService = UserService(apiService);
     _authService = AuthService(apiService);
     _load2FAStatus();
-    _loadStats();
     _loadStorageInfo();
+    // Cargar stats después del primer frame para evitar errores de setState durante build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStats();
+    });
   }
 
   Future<void> _load2FAStatus() async {
@@ -62,28 +67,90 @@ class _ProfileContentState extends State<ProfileContent> {
 
   Future<void> _loadStats() async {
     try {
-      final user = context.read<AuthProvider>().user;
-      if (user != null) {
-        final stats = await _userService.getUserStats(user.id);
-        if (mounted) {
-          setState(() {
-            _stats = stats;
-            _isLoadingStats = false;
-          });
+      final demostradorProvider = context.read<DemostradorProvider>();
+
+      // Cargar asignaciones si no están cargadas
+      if (demostradorProvider.asignacionesHoy.isEmpty) {
+        await demostradorProvider.loadAsignacionesHoy();
+      }
+
+      // Combinar todas las asignaciones del usuario
+      final asignaciones = [
+        ...demostradorProvider.asignacionesPendientes,
+        ...demostradorProvider.asignacionesCompletadas,
+      ];
+      final now = DateTime.now();
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final startOfMonth = DateTime(now.year, now.month, 1);
+
+      // Calcular activaciones (asignaciones completadas)
+      int activacionesHoy = 0;
+      int activacionesSemana = 0;
+      int activacionesMes = 0;
+
+      // Campañas únicas
+      final Set<String> campaniasActivasIds = {};
+      final Set<String> campaniasCompletadasIds = {};
+
+      for (final asig in asignaciones) {
+        final fecha = asig.actividad?.fechaDate ?? asig.createdAt ?? now;
+        final estaCompletada = asig.estado == EstadoAsignacion.completada;
+
+        // Contar activaciones completadas
+        if (estaCompletada) {
+          if (fecha.year == now.year && fecha.month == now.month && fecha.day == now.day) {
+            activacionesHoy++;
+          }
+          if (fecha.isAfter(startOfWeek.subtract(const Duration(days: 1)))) {
+            activacionesSemana++;
+          }
+          if (fecha.isAfter(startOfMonth.subtract(const Duration(days: 1)))) {
+            activacionesMes++;
+          }
         }
+
+        // Campañas únicas del usuario
+        final campId = asig.camp?.campId ?? asig.camp?.uuid;
+        if (campId != null) {
+          if (estaCompletada) {
+            campaniasCompletadasIds.add(campId);
+          } else {
+            campaniasActivasIds.add(campId);
+          }
+        }
+      }
+
+      // Calcular efectividad (% de asignaciones completadas)
+      final totalAsignaciones = asignaciones.length;
+      final completadas = asignaciones.where((a) => a.estado == EstadoAsignacion.completada).length;
+      final efectividad = totalAsignaciones > 0
+          ? ((completadas / totalAsignaciones) * 100).round()
+          : 0;
+
+      if (mounted) {
+        setState(() {
+          _stats = {
+            'activacionesHoy': activacionesHoy,
+            'activacionesSemana': activacionesSemana,
+            'activacionesMes': activacionesMes,
+            'campaniasActivas': campaniasActivasIds.length,
+            'campaniasCompletadas': campaniasCompletadasIds.length,
+            'efectividad': efectividad,
+          };
+          _isLoadingStats = false;
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingStats = false;
           _stats = {
-            'tiendasHoy': 0,
-            'tiendasSemana': 0,
-            'tiendasMes': 0,
-            'fotosHoy': 0,
-            'fotosMes': 0,
-            'campaniasCumplidas': 0,
-            'porcentajeCumplimiento': 0,
+            'activacionesHoy': 0,
+            'activacionesSemana': 0,
+            'activacionesMes': 0,
+            'campaniasActivas': 0,
+            'campaniasCompletadas': 0,
+            'efectividad': 0,
           };
         });
       }
@@ -231,32 +298,67 @@ class _ProfileContentState extends State<ProfileContent> {
       child: _isLoadingStats
           ? const Center(child: CircularProgressIndicator())
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Subtítulo Activaciones
+                _buildSubtitle('Activaciones'),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('Hoy', '${_stats['tiendasHoy'] ?? 0}', 'tiendas', AppColors.primaryStart)),
+                    Expanded(child: _buildStatCard('Hoy', '${_stats['activacionesHoy'] ?? 0}', 'demos', AppColors.primaryStart)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Semana', '${_stats['tiendasSemana'] ?? 0}', 'tiendas', AppColors.secondaryStart)),
+                    Expanded(child: _buildStatCard('Semana', '${_stats['activacionesSemana'] ?? 0}', 'demos', AppColors.secondaryStart)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Mes', '${_stats['tiendasMes'] ?? 0}', 'tiendas', AppColors.success)),
+                    Expanded(child: _buildStatCard('Mes', '${_stats['activacionesMes'] ?? 0}', 'demos', AppColors.success)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                // Subtítulo Campañas
+                _buildSubtitle('Campañas'),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('Fotos', '${_stats['fotosHoy'] ?? 0}', 'hoy', Colors.orange)),
+                    Expanded(child: _buildStatCard('Activas', '${_stats['campaniasActivas'] ?? 0}', 'campañas', Colors.blue)),
                     const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: _buildProgressCard(
-                        'Cumplimiento',
-                        (_stats['porcentajeCumplimiento'] ?? 0).toDouble(),
-                      ),
-                    ),
+                    Expanded(child: _buildStatCard('Terminadas', '${_stats['campaniasCompletadas'] ?? 0}', 'campañas', Colors.teal)),
                   ],
+                ),
+                const SizedBox(height: 16),
+                // Subtítulo Rendimiento
+                _buildSubtitle('Rendimiento'),
+                const SizedBox(height: 8),
+                _buildProgressCard(
+                  'Efectividad',
+                  (_stats['efectividad'] ?? 0).toDouble(),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildSubtitle(String text) {
+    return Builder(
+      builder: (context) => Row(
+        children: [
+          Container(
+            width: 4,
+            height: 16,
+            decoration: BoxDecoration(
+              color: AppColors.primaryStart,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: context.textSecondaryColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
