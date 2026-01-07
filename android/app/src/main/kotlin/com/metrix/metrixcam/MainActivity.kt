@@ -1,4 +1,4 @@
-package com.example.metrix_cam_pop
+package com.metrix.metrixcam
 
 import io.flutter.embedding.android.FlutterActivity
 

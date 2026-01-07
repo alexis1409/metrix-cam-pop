@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
@@ -162,53 +161,69 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      extendBody: true,
-      bottomNavigationBar: _buildModernNavBar(),
+      bottomNavigationBar: SafeArea(
+        child: _buildModernNavBar(),
+      ),
     );
   }
 
   Widget _buildModernNavBar() {
+    final isDark = context.isDarkMode;
+    final navBarHeight = 70.0;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(60)
+                : Colors.black.withAlpha(15),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          if (!isDark)
+            BoxShadow(
+              color: AppColors.primaryStart.withAlpha(10),
+              blurRadius: 40,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+        ],
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(230),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryStart.withAlpha(20),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(
-                color: Colors.white.withAlpha(200),
-                width: 1,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: navBarHeight,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? AppColors.borderDark.withAlpha(50)
+                  : AppColors.border.withAlpha(80),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                index: 0,
+                icon: Icons.store_outlined,
+                activeIcon: Icons.store_rounded,
+                label: 'Tiendas',
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.store_outlined,
-                  activeIcon: Icons.store_rounded,
-                  label: 'Tiendas',
-                ),
-                _buildCameraButton(),
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.photo_library_outlined,
-                  activeIcon: Icons.photo_library_rounded,
-                  label: 'Galería',
-                ),
-              ],
-            ),
+              _buildCameraButton(),
+              _buildNavItem(
+                index: 1,
+                icon: Icons.photo_library_outlined,
+                activeIcon: Icons.photo_library_rounded,
+                label: 'Galería',
+              ),
+            ],
           ),
         ),
       ),
@@ -222,37 +237,56 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     required String label,
   }) {
     final isActive = _currentIndex == index;
+    final isDark = context.isDarkMode;
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primaryStart.withAlpha(15) : Colors.transparent,
+          color: isActive
+              ? (isDark
+                  ? AppColors.primaryStart.withAlpha(25)
+                  : AppColors.primaryStart.withAlpha(12))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.primaryStart.withAlpha(isDark ? 40 : 20)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(
                 isActive ? activeIcon : icon,
-                key: ValueKey(isActive),
-                color: isActive ? AppColors.primaryStart : AppColors.textMuted,
-                size: 26,
+                color: isActive
+                    ? AppColors.primaryStart
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
+                size: 24,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 250),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive ? AppColors.primaryStart : AppColors.textMuted,
+                color: isActive
+                    ? AppColors.primaryStart
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
               ),
+              child: Text(label),
             ),
           ],
         ),
@@ -277,23 +311,23 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           );
         },
         child: Container(
-          width: 68,
-          height: 68,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryStart.withAlpha(80),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: AppColors.primaryStart.withAlpha(60),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: const Icon(
             Icons.camera_alt_rounded,
             color: Colors.white,
-            size: 30,
+            size: 26,
           ),
         ),
       ),

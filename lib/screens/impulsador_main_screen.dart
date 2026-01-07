@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
@@ -53,60 +52,68 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
         index: _currentIndex,
         children: screens,
       ),
-      extendBody: true,
-      bottomNavigationBar: _buildModernNavBar(),
+      bottomNavigationBar: SafeArea(
+        child: _buildModernNavBar(),
+      ),
     );
   }
 
   Widget _buildModernNavBar() {
     final isDark = context.isDarkMode;
+    final navBarHeight = 70.0;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(60)
+                : Colors.black.withAlpha(15),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          if (!isDark)
+            BoxShadow(
+              color: AppColors.primaryStart.withAlpha(10),
+              blurRadius: 40,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+        ],
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            height: 80,
-            decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: navBarHeight,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
               color: isDark
-                  ? AppColors.surfaceDark.withAlpha(230)
-                  : Colors.white.withAlpha(230),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withAlpha(40)
-                      : AppColors.primaryStart.withAlpha(20),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(
-                color: isDark
-                    ? AppColors.borderDark.withAlpha(100)
-                    : Colors.white.withAlpha(200),
-                width: 1,
+                  ? AppColors.borderDark.withAlpha(50)
+                  : AppColors.border.withAlpha(80),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNavItem(
+                index: 0,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Inicio',
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home_rounded,
-                  label: 'Inicio',
-                ),
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.person_outline_rounded,
-                  activeIcon: Icons.person_rounded,
-                  label: 'Perfil',
-                ),
-              ],
-            ),
+              _buildNavItem(
+                index: 1,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Perfil',
+              ),
+            ],
           ),
         ),
       ),
@@ -126,38 +133,50 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primaryStart.withAlpha(isDark ? 30 : 15)
+              ? (isDark
+                  ? AppColors.primaryStart.withAlpha(25)
+                  : AppColors.primaryStart.withAlpha(12))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.primaryStart.withAlpha(isDark ? 40 : 20)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(
                 isActive ? activeIcon : icon,
-                key: ValueKey(isActive),
                 color: isActive
                     ? AppColors.primaryStart
                     : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
-                size: 26,
+                size: 24,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 250),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive
                     ? AppColors.primaryStart
                     : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
               ),
+              child: Text(label),
             ),
           ],
         ),
