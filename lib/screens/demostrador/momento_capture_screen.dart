@@ -123,37 +123,63 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
     bool success;
     if (widget.isCorrection) {
+      // Es corrección de incidencia - subir foto directamente sin cuestionario
       success = await provider.corregirIncidencia(
         momento: widget.momento,
         nuevaFoto: _photo,
         ubicacion: _ubicacion,
       );
-    } else {
-      // If it's cierre, navigate to questionnaire
-      if (widget.momento == MomentoRTMT.cierreActividades) {
-        setState(() => _isLoading = false);
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CierreCuestionarioScreen(
-                foto: _photo!,
-                ubicacion: _ubicacion,
-              ),
-            ),
-          );
-        }
-        return;
-      }
 
-      success = await provider.registrarMomento(
-        momento: widget.momento,
-        foto: _photo,
-        ubicacion: _ubicacion,
-        productoUpc: _productoSeleccionado?.upc,
-        marcaId: _productoSeleccionado?.upc,
-        marcaNombre: _productoSeleccionado?.nombre,
-      );
+      // Recargar asignación después de corregir para actualizar estado
+      if (success) {
+        await provider.recargarAsignacionActual();
+      }
+    } else {
+      // If it's cierre, verificar si es corrección de incidencia (no requiere cuestionario)
+      if (widget.momento == MomentoRTMT.cierreActividades) {
+        // Verificar en el backend si es corrección
+        final esCorreccion = await provider.verificarCorreccionCierre();
+
+        if (esCorreccion) {
+          // Es corrección de cierre - subir foto sin cuestionario
+          debugPrint('📋 [MomentoCaptureScreen] Cierre es corrección - subiendo sin cuestionario');
+          success = await provider.corregirIncidencia(
+            momento: widget.momento,
+            nuevaFoto: _photo,
+            ubicacion: _ubicacion,
+          );
+
+          // Recargar asignación después de corregir
+          if (success) {
+            await provider.recargarAsignacionActual();
+          }
+        } else {
+          // Cierre normal - ir al cuestionario
+          setState(() => _isLoading = false);
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CierreCuestionarioScreen(
+                  foto: _photo!,
+                  ubicacion: _ubicacion,
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      } else {
+        // Otros momentos - registrar normalmente
+        success = await provider.registrarMomento(
+          momento: widget.momento,
+          foto: _photo,
+          ubicacion: _ubicacion,
+          productoUpc: _productoSeleccionado?.upc,
+          marcaId: _productoSeleccionado?.upc,
+          marcaNombre: _productoSeleccionado?.nombre,
+        );
+      }
     }
 
     setState(() => _isLoading = false);
@@ -292,13 +318,13 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
 
     // Obtener cantidad de momentos requeridos de la campaña
     final momentosRequeridos = asignacion?.camp?.cantidadMomentos ?? 1;
-    // Obtener cantidad de evidencias ya tomadas en labor de venta
-    final momentosTomados = asignacion?.laborVenta.evidencias.length ?? 0;
+    // Obtener cantidad de evidencias válidas (sin reportarProblema) en labor de venta
+    final momentosTomados = asignacion?.laborVenta.evidenciasValidas ?? 0;
     // Calcular los que faltan
     final momentosFaltantes = (momentosRequeridos - momentosTomados).clamp(0, momentosRequeridos);
 
     // Debug para ver los valores
-    debugPrint('📸 [MomentosCounter] cantidadMomentos: $momentosRequeridos, tomados: $momentosTomados, faltan: $momentosFaltantes');
+    debugPrint('📸 [MomentosCounter] cantidadMomentos: $momentosRequeridos, tomados (válidos): $momentosTomados, faltan: $momentosFaltantes');
 
     // Siempre mostrar el contador para Labor de Venta (ya estamos dentro del if del widget.momento)
 

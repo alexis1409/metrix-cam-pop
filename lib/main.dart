@@ -124,7 +124,7 @@ class MyApp extends StatelessWidget {
 
         // Providers
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(authService),
+          create: (_) => AuthProvider(authService, apiService),
         ),
         ChangeNotifierProvider(
           create: (_) => CampaniaProvider(campaniaService),

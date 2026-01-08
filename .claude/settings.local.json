@@ -8,7 +8,10 @@
       "Bash(flutter pub:*)",
       "Bash(flutter run:*)",
       "Bash(flutter devices:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nConfiguración para release en Play Store\n\n- Cambio de applicationId a com.metrix.metrixcam\n- Configuración de firma para release builds\n- Agregado ProGuard rules para optimización\n- Corregido navbar con SafeArea para Android\n- Actualizado NDK version y packaging config\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nConfiguración para release en Play Store\n\n- Cambio de applicationId a com.metrix.metrixcam\n- Configuración de firma para release builds\n- Agregado ProGuard rules para optimización\n- Corregido navbar con SafeArea para Android\n- Actualizado NDK version y packaging config\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

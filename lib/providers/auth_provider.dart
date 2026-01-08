@@ -4,6 +4,7 @@ import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/push_notification_service.dart';
 
 enum AuthStatus {
   initial,
@@ -16,6 +17,7 @@ enum AuthStatus {
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
+  final ApiService _apiService;
 
   AuthStatus _status = AuthStatus.initial;
   User? _user;
@@ -25,7 +27,7 @@ class AuthProvider extends ChangeNotifier {
   String? _pendingEmail;
   String? _pendingPassword;
 
-  AuthProvider(this._authService);
+  AuthProvider(this._authService, this._apiService);
 
   AuthStatus get status => _status;
   User? get user => _user;
@@ -85,6 +87,10 @@ class AuthProvider extends ChangeNotifier {
         _user = result.authResponse!.user;
         _status = AuthStatus.authenticated;
         _clearPendingCredentials();
+
+        // Register FCM token with backend
+        _registerFcmToken();
+
         notifyListeners();
         return result;
       }
@@ -130,6 +136,10 @@ class AuthProvider extends ChangeNotifier {
         _user = result.authResponse!.user;
         _status = AuthStatus.authenticated;
         _clearPendingCredentials();
+
+        // Register FCM token with backend
+        _registerFcmToken();
+
         notifyListeners();
         return true;
       }
@@ -247,10 +257,29 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Remove FCM token from backend before logout
+    try {
+      await PushNotificationService().removeTokenFromBackend(_apiService);
+    } catch (e) {
+      debugPrint('Error removing FCM token: $e');
+    }
+
     await _authService.logout();
     _user = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();
+  }
+
+  /// Register FCM token with backend (called after successful login)
+  Future<void> _registerFcmToken() async {
+    try {
+      final pushService = PushNotificationService();
+      if (pushService.isInitialized) {
+        await pushService.registerTokenWithBackend(_apiService);
+      }
+    } catch (e) {
+      debugPrint('Error registering FCM token: $e');
+    }
   }
 
   void clearError() {

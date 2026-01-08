@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/app_notification.dart';
+import 'api_service.dart';
+import '../config/api_config.dart';
 
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
@@ -266,6 +268,48 @@ class PushNotificationService {
       debugPrint('FCM token deleted');
     } catch (e) {
       debugPrint('Error deleting FCM token: $e');
+    }
+  }
+
+  /// Register FCM token with backend after login
+  Future<bool> registerTokenWithBackend(ApiService apiService) async {
+    if (_fcmToken == null) {
+      debugPrint('No FCM token available to register');
+      return false;
+    }
+
+    try {
+      final platform = Platform.isIOS ? 'ios' : 'android';
+
+      await apiService.post(ApiConfig.fcmToken, {
+        'token': _fcmToken,
+        'plataforma': platform,
+      });
+
+      debugPrint('FCM token registered with backend');
+      return true;
+    } catch (e) {
+      debugPrint('Error registering FCM token with backend: $e');
+      return false;
+    }
+  }
+
+  /// Remove FCM token from backend (on logout)
+  Future<bool> removeTokenFromBackend(ApiService apiService) async {
+    if (_fcmToken == null) {
+      return true;
+    }
+
+    try {
+      await apiService.delete(ApiConfig.fcmToken, body: {
+        'token': _fcmToken,
+      });
+
+      debugPrint('FCM token removed from backend');
+      return true;
+    } catch (e) {
+      debugPrint('Error removing FCM token from backend: $e');
+      return false;
     }
   }
 

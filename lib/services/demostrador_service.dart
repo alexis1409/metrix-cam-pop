@@ -484,6 +484,22 @@ class DemostradorService {
     }
   }
 
+  /// Verificar si el cierre es corrección de incidencia (no requiere cuestionario)
+  Future<bool> verificarCorreccionCierre(String asignacionId) async {
+    try {
+      debugPrint('📋 [DemostradorService] Verificando si cierre es corrección: $asignacionId');
+
+      final response = await _apiService.get('/asignaciones/verificar-correccion/$asignacionId');
+      final esCorreccion = response['esCorreccion'] ?? false;
+
+      debugPrint('📋 [DemostradorService] esCorreccion: $esCorreccion');
+      return esCorreccion;
+    } catch (e) {
+      debugPrint('❌ [DemostradorService] Error verificando corrección: $e');
+      return false;
+    }
+  }
+
   /// Registrar participación en dinámica
   Future<Map<String, dynamic>?> registrarParticipacionDinamica({
     required String asignacionId,

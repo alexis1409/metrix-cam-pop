@@ -212,12 +212,16 @@ class DemostradorDetailScreen extends StatelessWidget {
     DemostradorProvider provider,
   ) {
     // Verificar si Labor de Venta tiene todos los momentos requeridos
+    // Solo contar evidencias válidas (sin reportarProblema)
     final momentosRequeridos = asignacion.camp?.cantidadMomentos ?? 1;
-    final momentosTomados = asignacion.laborVenta.evidencias.length;
+    final momentosTomados = asignacion.laborVenta.evidenciasValidas;
     final laborVentaCompleta = momentosTomados >= momentosRequeridos;
 
-    // El cierre solo se habilita si Labor de Venta tiene todos los momentos
+    // El cierre solo se habilita si Labor de Venta tiene todos los momentos Y no hay incidencias
     final puedeAvanzarACierre = asignacion.puedeAvanzarA(MomentoRTMT.cierreActividades) && laborVentaCompleta;
+
+    // Verificar si hay incidencias que bloquean el avance
+    final momentoConIncidencia = asignacion.momentoConIncidencia;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,6 +234,11 @@ class DemostradorDetailScreen extends StatelessWidget {
             color: context.textPrimaryColor,
           ),
         ),
+        // Mostrar alerta si hay incidencia que bloquea
+        if (momentoConIncidencia != null) ...[
+          const SizedBox(height: 8),
+          _buildIncidenciaBloqueoAlert(context, momentoConIncidencia),
+        ],
         const SizedBox(height: 12),
         _buildMomentoCard(
           context,
@@ -258,6 +267,45 @@ class DemostradorDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildIncidenciaBloqueoAlert(BuildContext context, MomentoRTMT momento) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '¡Tienes una incidencia pendiente!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[700],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Debes corregir la foto de ${momento.label} antes de continuar con las siguientes actividades.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMomentoCard(
     BuildContext context,
     MomentoRTMT momento,
@@ -280,25 +328,65 @@ class DemostradorDetailScreen extends StatelessWidget {
     String statusText;
 
     // Para Labor de Venta, verificar si se cumplieron todos los momentos requeridos
+    // Solo contar evidencias válidas (sin reportarProblema)
     final momentosRequeridos = asignacion?.camp?.cantidadMomentos ?? 1;
-    final momentosTomados = registro.evidencias.length;
+    final momentosTomados = registro.evidenciasValidas;
     final laborVentaCompleta = momento != MomentoRTMT.laborVenta ||
         (registro.completada && momentosTomados >= momentosRequeridos);
 
-    // Verificar si Inicio de Actividades está completado (para bloquear Labor de Venta)
-    final inicioCompletado = asignacion?.inicioActividades.completada ?? false;
+    // Verificar si Inicio de Actividades está completado SIN incidencia (para habilitar Labor de Venta)
+    final inicioCompletadoSinIncidencia = (asignacion?.inicioActividades.completada ?? false) &&
+        !(asignacion?.inicioActividades.incidencia ?? false);
+
+    // Verificar si Labor de Venta está completado SIN incidencia (para habilitar Cierre)
+    final laborCompletadoSinIncidencia = (asignacion?.laborVenta.completada ?? false) &&
+        !(asignacion?.laborVenta.incidencia ?? false);
+
+    // Verificar si hay incidencia en un momento anterior que bloquea este
+    final bool bloqueadoPorIncidenciaAnterior;
+    if (momento == MomentoRTMT.laborVenta) {
+      // Labor de Venta bloqueado si: inicio tiene incidencia O inicio no está completado
+      bloqueadoPorIncidenciaAnterior = (asignacion?.inicioActividades.incidencia ?? false) ||
+          !(asignacion?.inicioActividades.completada ?? false);
+    } else if (momento == MomentoRTMT.cierreActividades) {
+      // Cierre bloqueado si: inicio tiene incidencia O labor tiene incidencia O labor no completado
+      bloqueadoPorIncidenciaAnterior = (asignacion?.inicioActividades.incidencia ?? false) ||
+          (asignacion?.laborVenta.incidencia ?? false) ||
+          !(asignacion?.laborVenta.completada ?? false);
+    } else {
+      bloqueadoPorIncidenciaAnterior = false;
+    }
+
+    // Determinar si hay incidencia específica en momento anterior (para mensaje más claro)
+    final bool tieneIncidenciaEnInicio = asignacion?.inicioActividades.incidencia ?? false;
+    final bool tieneIncidenciaEnLabor = asignacion?.laborVenta.incidencia ?? false;
 
     if (registro.incidencia) {
-      statusColor = Colors.orange;
-      statusIcon = Icons.warning;
-      statusText = 'Incidencia';
-    } else if (momento == MomentoRTMT.laborVenta && !inicioCompletado) {
-      // Labor de Venta bloqueado porque Inicio no está completado
+      statusColor = Colors.red;
+      statusIcon = Icons.error;
+      statusText = 'Incidencia - Corregir';
+    } else if (momento == MomentoRTMT.laborVenta && tieneIncidenciaEnInicio) {
+      // Labor de Venta bloqueado porque Inicio tiene incidencia
+      statusColor = Colors.red;
+      statusIcon = Icons.block;
+      statusText = 'Corregir Inicio primero';
+    } else if (momento == MomentoRTMT.cierreActividades && tieneIncidenciaEnInicio) {
+      // Cierre bloqueado porque Inicio tiene incidencia
+      statusColor = Colors.red;
+      statusIcon = Icons.block;
+      statusText = 'Corregir Inicio primero';
+    } else if (momento == MomentoRTMT.cierreActividades && tieneIncidenciaEnLabor) {
+      // Cierre bloqueado porque Labor tiene incidencia
+      statusColor = Colors.red;
+      statusIcon = Icons.block;
+      statusText = 'Corregir Labor primero';
+    } else if (bloqueadoPorIncidenciaAnterior) {
+      // Bloqueado por otra razón (momento anterior no completado)
       statusColor = Colors.grey;
       statusIcon = Icons.lock;
       statusText = 'Bloqueado';
-    } else if (momento == MomentoRTMT.laborVenta && momentosTomados < momentosRequeridos) {
-      // Labor de Venta con momentos pendientes (inicio ya completado)
+    } else if (momento == MomentoRTMT.laborVenta && momentosTomados < momentosRequeridos && inicioCompletadoSinIncidencia) {
+      // Labor de Venta con momentos pendientes (inicio ya completado y sin incidencia)
       statusColor = Colors.blue;
       statusIcon = Icons.play_circle;
       statusText = 'Pendiente';
@@ -324,37 +412,62 @@ class DemostradorDetailScreen extends StatelessWidget {
       statusText = 'Bloqueado';
     }
 
-    // Determinar si la tarjeta debe ser clickeable
+    // Determinar si la tarjeta debe ser clickeable para subir foto
     final bool estaActivo;
-    if (momento == MomentoRTMT.laborVenta) {
-      // Labor de Venta: activo si inicio está completado y faltan momentos
-      estaActivo = asignacion?.inicioActividades.completada == true && momentosTomados < momentosRequeridos;
+    if (registro.incidencia) {
+      // Si tiene incidencia, está activo para corregir
+      estaActivo = true;
+    } else if (momento == MomentoRTMT.laborVenta) {
+      // Labor de Venta: activo SOLO si inicio está completado SIN incidencia y faltan momentos
+      estaActivo = inicioCompletadoSinIncidencia && momentosTomados < momentosRequeridos;
+    } else if (momento == MomentoRTMT.cierreActividades) {
+      // Cierre: activo SOLO si inicio y labor están completados SIN incidencia
+      estaActivo = inicioCompletadoSinIncidencia && laborCompletadoSinIncidencia && canAdvance;
     } else if (momento == MomentoRTMT.inicioActividades) {
-      // Inicio de Actividades: activo si puede avanzar y no está completado
-      estaActivo = canAdvance && !registro.completada;
+      // Inicio de Actividades: activo si puede avanzar (no completado o tiene incidencia)
+      estaActivo = canAdvance;
     } else {
-      // Cierre de Actividades: activo si puede avanzar y labor de venta está completa
-      estaActivo = canAdvance && !registro.completada;
+      estaActivo = false;
+    }
+
+    // Determinar el borde de la tarjeta
+    BorderSide cardBorder;
+    if (registro.incidencia) {
+      cardBorder = const BorderSide(color: Colors.red, width: 2);
+    } else if (tieneIncidenciaEnInicio && momento != MomentoRTMT.inicioActividades) {
+      // Bloqueado por incidencia en inicio
+      cardBorder = const BorderSide(color: Colors.red, width: 1);
+    } else if (tieneIncidenciaEnLabor && momento == MomentoRTMT.cierreActividades) {
+      // Bloqueado por incidencia en labor
+      cardBorder = const BorderSide(color: Colors.red, width: 1);
+    } else if (estaActivo) {
+      cardBorder = const BorderSide(color: Colors.blue, width: 2);
+    } else if (cierreBloqueadoPorTiempo) {
+      cardBorder = const BorderSide(color: Colors.amber, width: 2);
+    } else {
+      cardBorder = BorderSide(color: context.borderColor, width: 0.5);
     }
 
     return Card(
       color: context.surfaceColor,
-      elevation: estaActivo ? 3 : 1,
+      elevation: estaActivo || registro.incidencia ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: estaActivo
-            ? const BorderSide(color: Colors.blue, width: 2)
-            : (cierreBloqueadoPorTiempo
-                ? const BorderSide(color: Colors.amber, width: 2)
-                : BorderSide(color: context.borderColor, width: 0.5)),
+        side: cardBorder,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: estaActivo
-            ? () => _navigateToMomento(context, momento)
-            : (registro.incidencia
-                ? () => _showCorregirIncidenciaDialog(context, momento, provider)
-                : null),
+            ? () {
+                if (registro.incidencia) {
+                  // Si tiene incidencia, navegar a corregir directamente
+                  _navigateToCorregirIncidencia(context, momento);
+                } else {
+                  // Navegar normalmente
+                  _navigateToMomento(context, momento);
+                }
+              }
+            : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -385,15 +498,18 @@ class DemostradorDetailScreen extends StatelessWidget {
                       children: [
                         Icon(statusIcon, size: 14, color: statusColor),
                         const SizedBox(width: 4),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // Mostrar contador de momentos para Labor de Venta
+                        // Mostrar contador de momentos para Labor de Venta (solo evidencias válidas)
                         if (momento == MomentoRTMT.laborVenta && asignacion != null) ...[
                           const SizedBox(width: 8),
                           Container(
@@ -405,7 +521,7 @@ class DemostradorDetailScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              '${registro.evidencias.length}/${asignacion.camp?.cantidadMomentos ?? 1}',
+                              '${registro.evidenciasValidas}/${asignacion.camp?.cantidadMomentos ?? 1}',
                               style: TextStyle(
                                 color: Colors.blue[context.isDarkMode ? 300 : 700],
                                 fontSize: 11,
@@ -479,13 +595,18 @@ class DemostradorDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              if (estaActivo)
-                const Icon(Icons.arrow_forward_ios, color: Colors.blue)
-              else if (registro.incidencia)
-                TextButton(
-                  onPressed: () => _showCorregirIncidenciaDialog(context, momento, provider),
+              if (registro.incidencia)
+                ElevatedButton(
+                  onPressed: () => _navigateToCorregirIncidencia(context, momento),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
                   child: const Text('Corregir'),
-                ),
+                )
+              else if (estaActivo)
+                const Icon(Icons.arrow_forward_ios, color: Colors.blue),
             ],
           ),
         ),
@@ -968,6 +1089,18 @@ class DemostradorDetailScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => MomentoCaptureScreen(momento: momento),
+      ),
+    );
+  }
+
+  void _navigateToCorregirIncidencia(BuildContext context, MomentoRTMT momento) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MomentoCaptureScreen(
+          momento: momento,
+          isCorrection: true,
+        ),
       ),
     );
   }

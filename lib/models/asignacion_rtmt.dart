@@ -203,6 +203,7 @@ class EvidenciaMomento {
   final String? marcaId;
   final String? marcaNombre;
   final String? productoUpc;
+  final bool reportarProblema;
 
   EvidenciaMomento({
     required this.url,
@@ -213,6 +214,7 @@ class EvidenciaMomento {
     this.marcaId,
     this.marcaNombre,
     this.productoUpc,
+    this.reportarProblema = false,
   });
 
   factory EvidenciaMomento.fromJson(dynamic json) {
@@ -234,6 +236,7 @@ class EvidenciaMomento {
       marcaId: _parseStringField(map['marcaId']),
       marcaNombre: map['marcaNombre'],
       productoUpc: map['productoUpc'],
+      reportarProblema: map['reportarProblema'] ?? false,
     );
   }
 
@@ -312,6 +315,41 @@ class RegistroMomento {
         if (notas != null) 'notas': notas,
         'evidencias': evidencias.map((e) => e.toJson()).toList(),
       };
+
+  /// Cuenta las evidencias válidas (sin reportarProblema)
+  /// NOTA: Si hay incidencia, significa que al menos una foto tiene problema
+  /// y no hay suficientes fotos válidas. El campo reportarProblema puede no
+  /// estar disponible en las evidencias embebidas, pero si incidencia=true
+  /// sabemos que hay fotos con problema.
+  int get evidenciasValidas {
+    // Primero intentar contar basado en reportarProblema
+    final validasContadas = evidencias.where((e) => !e.reportarProblema).length;
+
+    // Si hay incidencia y todas las evidencias parecen válidas (porque reportarProblema
+    // no vino del backend), entonces la incidencia indica que hay fotos con problema
+    // En este caso, si incidencia=true y todas las evidencias tienen reportarProblema=false,
+    // significa que el campo no fue enviado y debemos asumir que hay menos válidas
+    if (incidencia && validasContadas == evidencias.length && evidencias.isNotEmpty) {
+      // Si hay incidencia, al menos una foto tiene problema
+      // Retornamos total - 1 como mínimo (al menos una tiene problema)
+      return (evidencias.length - 1).clamp(0, evidencias.length);
+    }
+
+    return validasContadas;
+  }
+
+  /// Cuenta las evidencias con problema reportado
+  int get evidenciasConProblema {
+    final conProblema = evidencias.where((e) => e.reportarProblema).length;
+
+    // Si hay incidencia pero ninguna evidencia tiene reportarProblema=true,
+    // significa que el campo no vino del backend y al menos una tiene problema
+    if (incidencia && conProblema == 0 && evidencias.isNotEmpty) {
+      return 1; // Al menos una tiene problema
+    }
+
+    return conProblema;
+  }
 }
 
 /// Tienda en asignacion
@@ -944,25 +982,56 @@ class AsignacionRTMT {
   }
 
   /// Verifica si se puede avanzar al siguiente momento
+  /// IMPORTANTE: Si hay incidencia en un momento anterior, NO se puede avanzar
   bool puedeAvanzarA(MomentoRTMT momento) {
     switch (momento) {
       case MomentoRTMT.inicioActividades:
-        return !inicioActividades.completada;
+        // Solo puede subir inicio si NO está completado
+        // Si tiene incidencia, aún puede corregir (se maneja en la UI)
+        return !inicioActividades.completada || inicioActividades.incidencia;
       case MomentoRTMT.laborVenta:
-        return inicioActividades.completada &&
-            !inicioActividades.incidencia &&
-            !laborVenta.completada;
+        // Para labor de venta:
+        // 1. Inicio debe estar completado
+        // 2. Inicio NO debe tener incidencia (si tiene, debe corregir primero)
+        // 3. Labor de venta no debe estar completada (o tiene incidencia para corregir)
+        if (inicioActividades.incidencia) return false; // BLOQUEO: incidencia en inicio
+        if (!inicioActividades.completada) return false; // BLOQUEO: inicio no completado
+        return !laborVenta.completada || laborVenta.incidencia;
       case MomentoRTMT.cierreActividades:
-        // Verificar condiciones basicas
-        final condicionesBasicas = laborVenta.completada &&
-            !laborVenta.incidencia &&
-            !cierreActividades.completada;
-        if (!condicionesBasicas) return false;
+        // Para cierre:
+        // 1. Inicio no debe tener incidencia
+        // 2. Labor de venta debe estar completada
+        // 3. Labor de venta NO debe tener incidencia
+        // 4. Cierre no debe estar completado (o tiene incidencia para corregir)
+        if (inicioActividades.incidencia) return false; // BLOQUEO: incidencia en inicio
+        if (laborVenta.incidencia) return false; // BLOQUEO: incidencia en labor
+        if (!laborVenta.completada) return false; // BLOQUEO: labor no completada
+        if (cierreActividades.completada && !cierreActividades.incidencia) return false;
         // Si el supervisor habilitó el cierre, permitir avanzar
         if (cierreHabilitado) return true;
         // Verificar si ya es hora de hacer cierre (1 hora antes del fin del turno)
         return actividad?.puedeHacerCierre ?? true;
     }
+  }
+
+  /// Verifica si un momento específico tiene incidencia pendiente de corregir
+  bool tieneIncidenciaPendiente(MomentoRTMT momento) {
+    switch (momento) {
+      case MomentoRTMT.inicioActividades:
+        return inicioActividades.incidencia;
+      case MomentoRTMT.laborVenta:
+        return laborVenta.incidencia;
+      case MomentoRTMT.cierreActividades:
+        return cierreActividades.incidencia;
+    }
+  }
+
+  /// Obtiene el momento que tiene la primera incidencia (para mostrar al usuario qué corregir)
+  MomentoRTMT? get momentoConIncidencia {
+    if (inicioActividades.incidencia) return MomentoRTMT.inicioActividades;
+    if (laborVenta.incidencia) return MomentoRTMT.laborVenta;
+    if (cierreActividades.incidencia) return MomentoRTMT.cierreActividades;
+    return null;
   }
 
   /// Verifica si el cierre esta bloqueado por tiempo

@@ -631,4 +631,24 @@ class DemostradorProvider extends ChangeNotifier {
 
   /// Check if has incidences
   bool get tieneIncidencias => _asignacionActual?.tieneIncidencias ?? false;
+
+  /// Verificar si el cierre es corrección de incidencia (no requiere cuestionario)
+  Future<bool> verificarCorreccionCierre() async {
+    if (_asignacionActual == null) return false;
+    return _service.verificarCorreccionCierre(_asignacionActual!.id);
+  }
+
+  /// Recargar asignación actual desde el servidor
+  Future<void> recargarAsignacionActual() async {
+    if (_asignacionActual == null) return;
+
+    try {
+      final asignacionRecargada = await _service.getAsignacionById(_asignacionActual!.id);
+      _asignacionActual = asignacionRecargada;
+      await _updateAsignacionInList(asignacionRecargada);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ [DemostradorProvider] Error recargando asignación: $e');
+    }
+  }
 }
