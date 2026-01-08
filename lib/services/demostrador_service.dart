@@ -362,6 +362,9 @@ class DemostradorService {
   }) async {
     try {
       debugPrint('📋 [DemostradorService] Registering close with questionnaire');
+      debugPrint('📋 [DemostradorService] asignacionId: $asignacionId');
+      debugPrint('📋 [DemostradorService] numClientes: $numClientes');
+      debugPrint('📋 [DemostradorService] evidenciaBase64 length: ${evidenciaBase64?.length ?? 0}');
 
       final body = <String, dynamic>{
         'cuestionario': {
@@ -377,10 +380,12 @@ class DemostradorService {
       if (ubicacion != null) body['ubicacion'] = ubicacion.toJson();
       if (notas != null) body['notas'] = notas;
 
+      debugPrint('📋 [DemostradorService] Calling POST /asignaciones/$asignacionId/cierre-rtmt');
       final response = await _apiService.post(
         '/asignaciones/$asignacionId/cierre-rtmt',
         body,
       );
+      debugPrint('📋 [DemostradorService] Cierre response received');
 
       return AsignacionRTMT.fromJson(response);
     } catch (e) {
