@@ -33,4 +33,5 @@ class ApiConfig {
   static const String notificationsMarkRead = '/notifications/mark-read';
   static const String notificationsMarkAllRead = '/notifications/mark-all-read';
   static const String notificationsRegisterDevice = '/notifications/register-device';
+  static const String fcmToken = '/notifications/fcm-token';
 }

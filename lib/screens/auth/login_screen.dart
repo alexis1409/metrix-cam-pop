@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Version
                   Text(
-                    'v1.1.0',
+                    'v1.3.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.textMutedColor,
                         ),

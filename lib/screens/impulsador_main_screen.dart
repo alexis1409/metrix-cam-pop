@@ -55,15 +55,25 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
       bottomNavigationBar: SafeArea(
         child: _buildModernNavBar(),
       ),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: () async {
+                final demostradorProvider = context.read<DemostradorProvider>();
+                await demostradorProvider.loadAsignacionesHoy();
+              },
+              backgroundColor: AppColors.primaryStart,
+              child: const Icon(Icons.refresh, color: Colors.white),
+            )
+          : null,
     );
   }
 
   Widget _buildModernNavBar() {
     final isDark = context.isDarkMode;
-    final navBarHeight = 70.0;
+    final navBarHeight = 64.0;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -135,7 +145,7 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
               ? (isDark
@@ -148,25 +158,14 @@ class _ImpulsadorMainScreenState extends State<ImpulsadorMainScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppColors.primaryStart.withAlpha(isDark ? 40 : 20)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isActive ? activeIcon : icon,
-                color: isActive
-                    ? AppColors.primaryStart
-                    : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
-                size: 24,
-              ),
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive
+                  ? AppColors.primaryStart
+                  : (isDark ? AppColors.textMutedDark : AppColors.textMuted),
+              size: 24,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 250),
               style: TextStyle(

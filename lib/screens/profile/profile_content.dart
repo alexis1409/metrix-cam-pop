@@ -519,7 +519,7 @@ class _ProfileContentState extends State<ProfileContent> {
       iconColor: AppColors.textSecondary,
       child: Column(
         children: [
-          _buildInfoTile(Icons.apps, 'Versión', '1.1.0 (Build 2)'),
+          _buildInfoTile(Icons.apps, 'Versión', '1.3.0 (Build 4)'),
           Divider(height: 1, color: context.borderColor),
           _buildActionTile(
             icon: Icons.description_outlined,

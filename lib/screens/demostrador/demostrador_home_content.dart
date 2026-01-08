@@ -181,14 +181,6 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
           },
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: FloatingActionButton(
-          onPressed: _loadData,
-          backgroundColor: AppColors.primaryStart,
-          child: const Icon(Icons.refresh, color: Colors.white),
-        ),
-      ),
     );
   }
 
