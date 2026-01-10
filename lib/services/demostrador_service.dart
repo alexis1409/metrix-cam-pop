@@ -150,8 +150,8 @@ class DemostradorService {
       resized = image;
     }
 
-    // Comprimir como JPEG con calidad 50%
-    final compressedBytes = img.encodeJpg(resized, quality: 50);
+    // Comprimir como JPEG con calidad 90%
+    final compressedBytes = img.encodeJpg(resized, quality: 90);
 
     debugPrint('📷 [DemostradorService] Imagen original: ${bytes.length} bytes');
     debugPrint('📷 [DemostradorService] Imagen comprimida: ${compressedBytes.length} bytes');

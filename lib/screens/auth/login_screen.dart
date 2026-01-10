@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, auth, _) {
                       return SizedBox(
-                        height: 50,
+                        height: 58,
                         child: ElevatedButton(
                           onPressed: auth.isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
