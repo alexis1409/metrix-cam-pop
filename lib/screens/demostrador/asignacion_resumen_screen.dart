@@ -34,8 +34,13 @@ class AsignacionResumenScreen extends StatelessWidget {
             elevation: 0,
             iconTheme: IconThemeData(color: context.textPrimaryColor),
           ),
-          body: SingleChildScrollView(
-            child: Column(
+          body: RefreshIndicator(
+            onRefresh: () async {
+              await provider.loadVistaActual(asignacion.id);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header con info de la campaña
@@ -90,6 +95,7 @@ class AsignacionResumenScreen extends StatelessWidget {
                 const SizedBox(height: 32),
               ],
             ),
+          ),
           ),
         );
       },

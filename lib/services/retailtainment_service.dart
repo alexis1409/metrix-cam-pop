@@ -10,6 +10,10 @@ class RegistroRetailtainmentRequest {
   final List<String>? upcsValidados;
   final List<Premio>? premiosEntregados;
   final int? dinamicaIndex;
+  final String? dinamicaNombre;
+  final String? recompensaEntregada;
+  final String? tipoRecompensa;
+  final DateTime? fecha;
   final String? notas;
   final List<String>? evidencias;
 
@@ -20,6 +24,10 @@ class RegistroRetailtainmentRequest {
     this.upcsValidados,
     this.premiosEntregados,
     this.dinamicaIndex,
+    this.dinamicaNombre,
+    this.recompensaEntregada,
+    this.tipoRecompensa,
+    this.fecha,
     this.notas,
     this.evidencias,
   });
@@ -38,6 +46,16 @@ class RegistroRetailtainmentRequest {
       json['premiosEntregados'] = premiosEntregados!.map((p) => p.toJson()).toList();
     }
     if (dinamicaIndex != null) json['dinamicaIndex'] = dinamicaIndex;
+    if (dinamicaNombre != null && dinamicaNombre!.isNotEmpty) {
+      json['dinamicaNombre'] = dinamicaNombre;
+    }
+    if (recompensaEntregada != null && recompensaEntregada!.isNotEmpty) {
+      json['recompensaEntregada'] = recompensaEntregada;
+    }
+    if (tipoRecompensa != null && tipoRecompensa!.isNotEmpty) {
+      json['tipoRecompensa'] = tipoRecompensa;
+    }
+    if (fecha != null) json['fecha'] = fecha!.toIso8601String();
     if (notas != null && notas!.isNotEmpty) json['notas'] = notas;
     if (evidencias != null && evidencias!.isNotEmpty) {
       json['evidencias'] = evidencias;
@@ -165,6 +183,9 @@ class RetailtainmentService {
     required String campaniaId,
     required String tiendaId,
     required int dinamicaIndex,
+    required String dinamicaNombre,
+    required String recompensaEntregada,
+    String? tipoRecompensa,
     String? notas,
     List<String>? evidencias,
   }) async {
@@ -172,6 +193,10 @@ class RetailtainmentService {
       tipo: 'canje_dinamica',
       tiendaId: tiendaId,
       dinamicaIndex: dinamicaIndex,
+      dinamicaNombre: dinamicaNombre,
+      recompensaEntregada: recompensaEntregada,
+      tipoRecompensa: tipoRecompensa,
+      fecha: DateTime.now(),
       notas: notas,
       evidencias: evidencias,
     );

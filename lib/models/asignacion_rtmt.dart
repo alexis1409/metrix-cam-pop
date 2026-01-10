@@ -498,12 +498,18 @@ class CampAsignacion {
     final anunciante = json['anunciante'] as Map<String, dynamic>?;
     final marca = anunciante?['marca'] as Map<String, dynamic>?;
 
+    // Debug: ver qué campos tiene el JSON de la campaña
+    debugPrint('📋 [CampAsignacion.fromJson] Campos recibidos: ${json.keys.toList()}');
+    debugPrint('📋 [CampAsignacion.fromJson] tipoRetailtainment: ${json['tipoRetailtainment']}');
+    debugPrint('📋 [CampAsignacion.fromJson] marcas raw: ${json['marcas']}');
+
     // Parsear array de marcas
     List<MarcaCampania> marcasList = [];
     if (json['marcas'] != null && json['marcas'] is List) {
       marcasList = (json['marcas'] as List)
           .map((m) => MarcaCampania.fromJson(m as Map<String, dynamic>))
           .toList();
+      debugPrint('📋 [CampAsignacion.fromJson] Marcas parseadas: ${marcasList.length}');
     }
 
     // Parsear array de configCanje
@@ -1127,4 +1133,32 @@ class AsignacionRTMT {
 
   /// Hora formateada
   String get horaFormateada => actividad?.horaFormateada ?? '';
+
+  /// Crea una copia de la asignación con una campaña diferente
+  AsignacionRTMT copyWithCamp(CampAsignacion? newCamp) {
+    return AsignacionRTMT(
+      id: id,
+      tipo: tipo,
+      subtipo: subtipo,
+      tienda: tienda,
+      agencia: agencia,
+      camp: newCamp ?? camp,
+      actividad: actividad,
+      periodo: periodo,
+      estado: estado,
+      momentoActual: momentoActual,
+      inicioActividades: inicioActividades,
+      laborVenta: laborVenta,
+      cierreActividades: cierreActividades,
+      cuestionario: cuestionario,
+      productos: productos,
+      premios: premios,
+      ticketsCanje: ticketsCanje,
+      participacionesDinamica: participacionesDinamica,
+      forzarCierre: forzarCierre,
+      cierreHabilitadoPorSupervisor: cierreHabilitadoPorSupervisor,
+      notas: notas,
+      createdAt: createdAt,
+    );
+  }
 }

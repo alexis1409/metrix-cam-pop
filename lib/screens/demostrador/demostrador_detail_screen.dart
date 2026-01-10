@@ -6,7 +6,6 @@ import '../../models/ticket_canje.dart';
 import '../../providers/demostrador_provider.dart';
 import 'momento_capture_screen.dart';
 import 'ticket_canje_screen.dart';
-import 'dinamica_participacion_screen.dart';
 
 class DemostradorDetailScreen extends StatelessWidget {
   const DemostradorDetailScreen({super.key});
@@ -941,9 +940,10 @@ class DemostradorDetailScreen extends StatelessWidget {
             ? () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DinamicaParticipacionScreen(
+                  builder: (context) => TicketCanjeScreen(
                     asignacion: asignacion,
-                    dinamica: dinamica,
+                    configDinamica: [dinamica],
+                    esCanjeDinamica: true,
                   ),
                 ),
               )

@@ -104,79 +104,78 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
                 return fechaB.compareTo(fechaA); // Descendente
               });
 
-            return RefreshIndicator(
-              onRefresh: _loadData,
-              child: CustomScrollView(
-                slivers: [
-                  // Header with greeting
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '¡Hola, $userName!',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: context.textPrimaryColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatFechaHoy(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: context.textSecondaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Tabs
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: context.borderColor),
-                          ),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: AppColors.primaryStart,
-                          unselectedLabelColor: context.textMutedColor,
-                          indicatorColor: AppColors.primaryStart,
-                          indicatorWeight: 2,
-                          labelStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          tabs: [
-                            Tab(text: 'Activas (${asignacionesActivas.length})'),
-                            Tab(text: 'Terminadas (${asignacionesTerminadas.length})'),
-                          ],
+            return Column(
+              children: [
+                // Header with greeting
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '¡Hola, $userName!',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: context.textPrimaryColor,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatFechaHoy(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: context.textSecondaryColor,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
 
-                  // Content based on tab
-                  SliverFillRemaining(
-                    child: TabBarView(
+                // Tabs
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: context.borderColor),
+                      ),
+                    ),
+                    child: TabBar(
                       controller: _tabController,
-                      children: [
-                        _buildActivasConProximas(asignacionesActivas, asignacionesProximas),
-                        _buildAsignacionesList(asignacionesTerminadas, false),
+                      labelColor: AppColors.primaryStart,
+                      unselectedLabelColor: context.textMutedColor,
+                      indicatorColor: AppColors.primaryStart,
+                      indicatorWeight: 2,
+                      labelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      tabs: [
+                        Tab(text: 'Activas (${asignacionesActivas.length})'),
+                        Tab(text: 'Terminadas (${asignacionesTerminadas.length})'),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                // Content based on tab with RefreshIndicator in each tab
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: _buildActivasConProximas(asignacionesActivas, asignacionesProximas),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: _buildAsignacionesList(asignacionesTerminadas, false),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -216,32 +215,41 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
     List<AsignacionRTMT> proximas,
   ) {
     if (activas.isEmpty && proximas.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('📋', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            const Text(
-              'Sin actividades',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1F2937),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('📋', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sin actividades',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No tienes actividades pendientes',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'No tienes actividades pendientes',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       children: [
         // Sección: Activas (hoy)
@@ -306,40 +314,49 @@ class _DemostradorHomeContentState extends State<DemostradorHomeContent>
 
   Widget _buildAsignacionesList(List<AsignacionRTMT> asignaciones, bool isActive) {
     if (asignaciones.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              isActive ? '📋' : '✅',
-              style: const TextStyle(fontSize: 48),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isActive ? 'Sin actividades activas' : 'Sin actividades terminadas',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1F2937),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isActive ? '📋' : '✅',
+                    style: const TextStyle(fontSize: 48),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isActive ? 'Sin actividades activas' : 'Sin actividades terminadas',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isActive
+                        ? 'No tienes actividades pendientes para hoy'
+                        : 'Aún no has completado ninguna actividad',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              isActive
-                  ? 'No tienes actividades pendientes para hoy'
-                  : 'Aún no has completado ninguna actividad',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), // Extra bottom padding for nav bar
       itemCount: asignaciones.length,
       itemBuilder: (context, index) {

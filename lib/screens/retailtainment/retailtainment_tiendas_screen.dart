@@ -5,8 +5,22 @@ import '../../models/campania.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/retailtainment_provider.dart';
 
-class RetailtainmentTiendasScreen extends StatelessWidget {
+class RetailtainmentTiendasScreen extends StatefulWidget {
   const RetailtainmentTiendasScreen({super.key});
+
+  @override
+  State<RetailtainmentTiendasScreen> createState() => _RetailtainmentTiendasScreenState();
+}
+
+class _RetailtainmentTiendasScreenState extends State<RetailtainmentTiendasScreen> {
+  Future<void> _loadData() async {
+    final user = context.read<AuthProvider>().user;
+    if (user != null && user.hasRetailtainmentRole) {
+      final provider = context.read<RetailtainmentProvider>();
+      await provider.loadTiendasAsignadas(user.id);
+      await provider.loadCampanias(user.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +30,20 @@ class RetailtainmentTiendasScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(context, isImpulsador, provider),
-          if (isImpulsador)
-            SliverToBoxAdapter(child: _buildSingleStore(context, provider))
-          else
-            _buildStoresList(context, provider),
-          // Bottom padding for nav bar
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildAppBar(context, isImpulsador, provider),
+            if (isImpulsador)
+              SliverToBoxAdapter(child: _buildSingleStore(context, provider))
+            else
+              _buildStoresList(context, provider),
+            // Bottom padding for nav bar
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
       ),
     );
   }

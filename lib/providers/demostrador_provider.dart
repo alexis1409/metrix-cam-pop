@@ -160,6 +160,9 @@ class DemostradorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Guardar la campaña original antes de actualizar
+      final campOriginal = _asignacionActual!.camp;
+
       AsignacionRTMT result;
 
       if (foto != null) {
@@ -183,6 +186,22 @@ class DemostradorProvider extends ChangeNotifier {
           marcaId: marcaId,
           marcaNombre: marcaNombre,
         );
+      }
+
+      // Si el resultado no tiene campaña completa, preservar la original
+      // Verificamos: tipoRetailtainment, marcas, configCanje, configDinamica
+      final campResult = result.camp;
+      final necesitaPreservar = campResult == null ||
+          campResult.tipoRetailtainment == null ||
+          (campOriginal?.marcas.isNotEmpty == true && campResult.marcas.isEmpty) ||
+          (campOriginal?.configCanje.isNotEmpty == true && campResult.configCanje.isEmpty) ||
+          (campOriginal?.configDinamica.isNotEmpty == true && campResult.configDinamica.isEmpty);
+
+      if (necesitaPreservar && campOriginal != null) {
+        debugPrint('📋 [DemostradorProvider] Preservando campaña original porque faltan datos');
+        debugPrint('📋 [DemostradorProvider] tipoRetailtainment result: ${campResult?.tipoRetailtainment}, original: ${campOriginal.tipoRetailtainment}');
+        debugPrint('📋 [DemostradorProvider] marcas result: ${campResult?.marcas.length ?? 0}, original: ${campOriginal.marcas.length}');
+        result = result.copyWithCamp(campOriginal);
       }
 
       _asignacionActual = result;

@@ -3,8 +3,8 @@ class ApiConfig {
   // For Android emulator use: 10.0.2.2
   // For iOS simulator use: localhost
   // For real device use: your machine's IP address
-  static const String baseUrl = 'http://192.168.0.42:6001';
-  // static const String baseUrl = 'https://api-cam.metrix.com.mx';
+   //static const String baseUrl = 'http://192.168.100.8:6001';
+  const String baseUrl = 'https://api-cam.metrix.com.mx';
   
   // Demostrador RTMT Endpoints
   static const String asignaciones = '/asignaciones';

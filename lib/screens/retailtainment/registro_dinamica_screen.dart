@@ -81,9 +81,13 @@ class _RegistroDinamicaScreenState extends State<RegistroDinamicaScreen> {
 
     try {
       final provider = context.read<RetailtainmentProvider>();
+      final dinamica = _selectedDinamica!;
       final success = await provider.registrarCanjeDinamica(
         tiendaId: widget.tienda.id,
         dinamicaIndex: _selectedDinamicaIndex!,
+        dinamicaNombre: dinamica.nombre,
+        recompensaEntregada: dinamica.recompensa,
+        tipoRecompensa: dinamica.tipoRecompensa,
         notas: _notasController.text.trim().isNotEmpty ? _notasController.text.trim() : null,
         photos: _photos.isNotEmpty ? _photos : null,
       );

@@ -12,7 +12,8 @@
       "Bash(cat:*)",
       "Bash(curl:*)",
       "Bash(pkill:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(flutter install:*)"
     ]
   }
 }

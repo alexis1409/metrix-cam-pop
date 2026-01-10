@@ -20,7 +20,7 @@ class _RetailtainmentListScreenState extends State<RetailtainmentListScreen> {
     _loadCampanias();
   }
 
-  void _loadCampanias() async {
+  Future<void> _loadCampanias() async {
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
     if (user != null) {
@@ -32,7 +32,7 @@ class _RetailtainmentListScreenState extends State<RetailtainmentListScreen> {
         await provider.loadTiendasAsignadas(user.id);
       }
 
-      provider.loadCampanias(user.id);
+      await provider.loadCampanias(user.id);
     }
   }
 
@@ -40,12 +40,16 @@ class _RetailtainmentListScreenState extends State<RetailtainmentListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(child: _buildHeader()),
-          _buildCampaniasList(),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadCampanias,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildAppBar(),
+            SliverToBoxAdapter(child: _buildHeader()),
+            _buildCampaniasList(),
+          ],
+        ),
       ),
     );
   }

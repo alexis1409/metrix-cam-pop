@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/campania.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/retailtainment_provider.dart';
 import 'registro_demostracion_screen.dart';
 import 'registro_canje_compra_screen.dart';
 import 'registro_dinamica_screen.dart';
 
-class RetailtainmentDetailScreen extends StatelessWidget {
+class RetailtainmentDetailScreen extends StatefulWidget {
   final Campania campania;
 
   const RetailtainmentDetailScreen({
@@ -16,26 +17,61 @@ class RetailtainmentDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<RetailtainmentDetailScreen> createState() => _RetailtainmentDetailScreenState();
+}
+
+class _RetailtainmentDetailScreenState extends State<RetailtainmentDetailScreen> {
+  late Campania campania;
+
+  @override
+  void initState() {
+    super.initState();
+    campania = widget.campania;
+  }
+
+  Future<void> _refreshCampania() async {
+    final provider = context.read<RetailtainmentProvider>();
+    final user = context.read<AuthProvider>().user;
+    if (user != null) {
+      await provider.loadCampanias(user.id);
+      // Buscar la campaña actualizada en la lista
+      final updatedCampania = provider.campanias.firstWhere(
+        (c) => c.id == campania.id,
+        orElse: () => campania,
+      );
+      if (mounted) {
+        setState(() {
+          campania = updatedCampania;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isActiveToday = campania.esDiaActivoHoy;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(context),
-          SliverToBoxAdapter(child: _buildCampaignInfo(context)),
-          if (!isActiveToday)
-            SliverToBoxAdapter(child: _buildInactiveDayWarning()),
-          SliverToBoxAdapter(child: _buildDiasActivos()),
-          if (campania.tipoRetailtainment == 'canje_compra')
-            SliverToBoxAdapter(child: _buildRangosInfo(context)),
-          if (campania.tipoRetailtainment == 'canje_dinamica')
-            SliverToBoxAdapter(child: _buildDinamicasInfo()),
-          if (campania.upcs.isNotEmpty)
-            SliverToBoxAdapter(child: _buildUpcsInfo()),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _refreshCampania,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildAppBar(context),
+            SliverToBoxAdapter(child: _buildCampaignInfo(context)),
+            if (!isActiveToday)
+              SliverToBoxAdapter(child: _buildInactiveDayWarning()),
+            SliverToBoxAdapter(child: _buildDiasActivos()),
+            if (campania.tipoRetailtainment == 'canje_compra')
+              SliverToBoxAdapter(child: _buildRangosInfo(context)),
+            if (campania.tipoRetailtainment == 'canje_dinamica')
+              SliverToBoxAdapter(child: _buildDinamicasInfo()),
+            if (campania.upcs.isNotEmpty)
+              SliverToBoxAdapter(child: _buildUpcsInfo()),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
       ),
       floatingActionButton: isActiveToday ? _buildFab(context) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

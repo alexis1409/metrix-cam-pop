@@ -178,12 +178,12 @@ class _RetailtainmentCampaniasTab extends StatefulWidget {
 }
 
 class _RetailtainmentCampaniasTabState extends State<_RetailtainmentCampaniasTab> {
-  void _loadCampanias() async {
+  Future<void> _loadCampanias() async {
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
     if (user != null) {
       final provider = context.read<RetailtainmentProvider>();
-      provider.loadCampanias(user.id);
+      await provider.loadCampanias(user.id);
     }
   }
 
@@ -191,14 +191,18 @@ class _RetailtainmentCampaniasTabState extends State<_RetailtainmentCampaniasTab
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(child: _buildHeader()),
-          _buildCampaniasList(),
-          // Bottom padding for nav bar
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadCampanias,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildAppBar(),
+            SliverToBoxAdapter(child: _buildHeader()),
+            _buildCampaniasList(),
+            // Bottom padding for nav bar
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
       ),
     );
   }

@@ -277,6 +277,9 @@ class RetailtainmentProvider extends ChangeNotifier {
   Future<bool> registrarCanjeDinamica({
     required String tiendaId,
     required int dinamicaIndex,
+    required String dinamicaNombre,
+    required String recompensaEntregada,
+    String? tipoRecompensa,
     String? notas,
     List<File>? photos,
   }) async {
@@ -299,6 +302,9 @@ class RetailtainmentProvider extends ChangeNotifier {
         campaniaId: _selectedCampania!.id,
         tiendaId: tiendaId,
         dinamicaIndex: dinamicaIndex,
+        dinamicaNombre: dinamicaNombre,
+        recompensaEntregada: recompensaEntregada,
+        tipoRecompensa: tipoRecompensa,
         notas: notas,
         evidencias: evidencias,
       );

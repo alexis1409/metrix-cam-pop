@@ -461,6 +461,12 @@ class _MomentoCaptureScreenState extends State<MomentoCaptureScreen> {
     // Obtener marcas de la campaña
     final marcasCampania = asignacion?.camp?.marcas ?? [];
 
+    // Debug: ver qué marcas tenemos
+    debugPrint('📋 [ProductSelector] asignacion.camp: ${asignacion?.camp?.nombre}');
+    debugPrint('📋 [ProductSelector] marcasCampania: ${marcasCampania.length} marcas');
+    debugPrint('📋 [ProductSelector] marcas: ${marcasCampania.map((m) => m.nombre).toList()}');
+    debugPrint('📋 [ProductSelector] productos: ${asignacion?.productos.length ?? 0} productos');
+
     // Convertir marcas a ProductoAsignacion para mantener compatibilidad
     List<ProductoAsignacion> productos = [];
 
