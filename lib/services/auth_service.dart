@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/auth_response.dart';
@@ -29,10 +30,14 @@ class AuthService {
     }
 
     final response = await _apiService.post(ApiConfig.login, body);
+    debugPrint('>>> AuthService LOGIN response: $response');
     final result = LoginResult.fromJson(response);
+    debugPrint('>>> AuthService LOGIN result.success: ${result.success}');
 
     // If login successful (not requiring 2FA), save auth data
     if (result.success && result.authResponse != null) {
+      debugPrint('>>> AuthService LOGIN user.role: ${result.authResponse!.user.role}');
+      debugPrint('>>> AuthService LOGIN user.rolRetailtainment: ${result.authResponse!.user.rolRetailtainment}');
       await _saveAuthData(result.authResponse!);
       _apiService.setToken(result.authResponse!.accessToken);
     }
@@ -73,6 +78,10 @@ class AuthService {
         userMap['email'] = parts[2];
         userMap['role'] = parts[3];
         userMap['isActive'] = parts[4] == 'true';
+        // Parse rolRetailtainment if present (index 5)
+        if (parts.length >= 6 && parts[5].isNotEmpty) {
+          userMap['rolRetailtainment'] = parts[5];
+        }
       }
       return User.fromJson(userMap);
     } catch (e) {
@@ -84,10 +93,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, authResponse.accessToken);
 
-    // Save user data as simple string
+    // Save user data as simple string (including rolRetailtainment)
     final user = authResponse.user;
+    final rolRtName = user.rolRetailtainment?.name ?? '';
     final userData =
-        '${user.id}|${user.name}|${user.email}|${user.role}|${user.isActive}';
+        '${user.id}|${user.name}|${user.email}|${user.role}|${user.isActive}|$rolRtName';
     await prefs.setString(_userKey, userData);
   }
 

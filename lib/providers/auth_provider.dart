@@ -49,9 +49,18 @@ class AuthProvider extends ChangeNotifier {
         debugPrint('>>> AuthProvider: restoring session...');
         await _authService.restoreSession();
         debugPrint('>>> AuthProvider: getting saved user...');
-        _user = await _authService.getSavedUser();
-        debugPrint('>>> AuthProvider: user loaded: ${_user?.name}');
-        _status = AuthStatus.authenticated;
+        final savedUser = await _authService.getSavedUser();
+        debugPrint('>>> AuthProvider: user loaded: ${savedUser?.name}');
+
+        // Validate that user has allowed role (impulsador or supervisor_retailtainment)
+        if (savedUser != null && !savedUser.hasRetailtainmentRole) {
+          debugPrint('>>> AuthProvider: user does not have retailtainment role, logging out');
+          await _authService.logout();
+          _status = AuthStatus.unauthenticated;
+        } else {
+          _user = savedUser;
+          _status = AuthStatus.authenticated;
+        }
       } else {
         debugPrint('>>> AuthProvider: not logged in, status = unauthenticated');
         _status = AuthStatus.unauthenticated;
@@ -84,7 +93,26 @@ class AuthProvider extends ChangeNotifier {
       }
 
       if (result.success && result.authResponse != null) {
-        _user = result.authResponse!.user;
+        final user = result.authResponse!.user;
+
+        // Debug: Log user role information
+        debugPrint('>>> AuthProvider LOGIN: user.role = ${user.role}');
+        debugPrint('>>> AuthProvider LOGIN: user.rolRetailtainment = ${user.rolRetailtainment}');
+        debugPrint('>>> AuthProvider LOGIN: user.hasRetailtainmentRole = ${user.hasRetailtainmentRole}');
+
+        // Validate that user has allowed role (impulsador or supervisor_retailtainment)
+        if (!user.hasRetailtainmentRole) {
+          debugPrint('>>> AuthProvider LOGIN: BLOCKING user - no retailtainment role');
+          // Logout and show error
+          await _authService.logout();
+          _errorMessage = 'Acceso no autorizado. Esta aplicación es exclusiva para personal de campo (Impulsador o Supervisor).';
+          _status = AuthStatus.error;
+          notifyListeners();
+          return LoginResult.error(_errorMessage!);
+        }
+
+        debugPrint('>>> AuthProvider LOGIN: ALLOWING user - has retailtainment role');
+        _user = user;
         _status = AuthStatus.authenticated;
         _clearPendingCredentials();
 
@@ -100,11 +128,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return result;
     } on ApiException catch (e) {
+      debugPrint('>>> AuthProvider LOGIN ApiException: ${e.message}, statusCode: ${e.statusCode}');
       _errorMessage = _getFriendlyLoginError(e);
       _status = AuthStatus.error;
       notifyListeners();
       return LoginResult.error(_errorMessage!);
     } catch (e) {
+      debugPrint('>>> AuthProvider LOGIN Exception: $e');
       _errorMessage = _getFriendlyConnectionError(e);
       _status = AuthStatus.error;
       notifyListeners();
@@ -133,7 +163,20 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (result.success && result.authResponse != null) {
-        _user = result.authResponse!.user;
+        final user = result.authResponse!.user;
+
+        // Validate that user has allowed role (impulsador or supervisor_retailtainment)
+        if (!user.hasRetailtainmentRole) {
+          // Logout and show error
+          await _authService.logout();
+          _errorMessage = 'Acceso no autorizado. Esta aplicación es exclusiva para personal de campo (Impulsador o Supervisor).';
+          _status = AuthStatus.error;
+          _clearPendingCredentials();
+          notifyListeners();
+          return false;
+        }
+
+        _user = user;
         _status = AuthStatus.authenticated;
         _clearPendingCredentials();
 
@@ -193,8 +236,24 @@ class AuthProvider extends ChangeNotifier {
     final message = e.message.toLowerCase();
     final statusCode = e.statusCode;
 
+    // Check for role-related errors first (from backend)
+    if (message.contains('rol') ||
+        message.contains('role') ||
+        message.contains('permiso') ||
+        message.contains('permission') ||
+        message.contains('acceso') ||
+        message.contains('access denied') ||
+        message.contains('no autorizado') ||
+        message.contains('not authorized')) {
+      return 'Acceso denegado. Tu rol no tiene permiso para usar esta aplicación.';
+    }
+
     // Check for specific status codes
-    if (statusCode == 401 || statusCode == 403) {
+    if (statusCode == 403) {
+      return 'Acceso denegado. Tu rol no tiene permiso para usar esta aplicación.';
+    }
+
+    if (statusCode == 401) {
       return 'Usuario o contraseña incorrectos';
     }
 
@@ -213,8 +272,7 @@ class AuthProvider extends ChangeNotifier {
     // Check for common error messages
     if (message.contains('invalid') ||
         message.contains('incorrect') ||
-        message.contains('wrong') ||
-        message.contains('unauthorized')) {
+        message.contains('wrong')) {
       return 'Usuario o contraseña incorrectos';
     }
 

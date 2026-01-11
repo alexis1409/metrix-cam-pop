@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img;
 
 class QuickCameraScreen extends StatefulWidget {
   const QuickCameraScreen({super.key});
@@ -66,7 +64,7 @@ class _QuickCameraScreenState extends State<QuickCameraScreen> {
 
       _controller = CameraController(
         backCamera,
-        ResolutionPreset.high,
+        ResolutionPreset.max, // Máxima resolución disponible
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -157,11 +155,9 @@ class _QuickCameraScreenState extends State<QuickCameraScreen> {
     try {
       final XFile photo = await _controller!.takePicture();
 
-      // Compress the image
-      final File compressedFile = await _compressImage(File(photo.path));
-
+      // Return original photo without compression
       if (mounted) {
-        Navigator.pop(context, compressedFile);
+        Navigator.pop(context, File(photo.path));
       }
     } catch (e) {
       setState(() => _isCapturing = false);
@@ -170,40 +166,6 @@ class _QuickCameraScreenState extends State<QuickCameraScreen> {
           SnackBar(content: Text('Error al capturar: $e')),
         );
       }
-    }
-  }
-
-  Future<File> _compressImage(File file) async {
-    try {
-      final bytes = await file.readAsBytes();
-      final image = img.decodeImage(bytes);
-
-      if (image == null) return file;
-
-      // Resize if too large (max 1200px for better quality)
-      img.Image resized = image;
-      if (image.width > 1200 || image.height > 1200) {
-        if (image.width > image.height) {
-          resized = img.copyResize(image, width: 1200);
-        } else {
-          resized = img.copyResize(image, height: 1200);
-        }
-      }
-
-      // Compress with quality 70
-      final compressedBytes = img.encodeJpg(resized, quality: 70);
-
-      // Save to temp file
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/photo_${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await tempFile.writeAsBytes(compressedBytes);
-
-      // Delete original
-      await file.delete();
-
-      return tempFile;
-    } catch (e) {
-      return file;
     }
   }
 

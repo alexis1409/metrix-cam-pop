@@ -128,33 +128,34 @@ class DemostradorService {
     }
   }
 
-  /// Subir foto y convertir a base64 con compresión
+  /// Subir foto y convertir a base64 con alta calidad
   Future<String> convertImageToBase64(File photo) async {
     final bytes = await photo.readAsBytes();
+    final originalSize = bytes.length;
 
     // Decodificar la imagen
     final image = img.decodeImage(bytes);
     if (image == null) {
-      throw Exception('No se pudo decodificar la imagen');
+      // Si no se puede decodificar, enviar original
+      debugPrint('📷 [DemostradorService] No se pudo decodificar, enviando original: $originalSize bytes');
+      return base64Encode(bytes);
     }
 
-    // Redimensionar si es muy grande (máximo 600px)
-    img.Image resized;
-    if (image.width > 600 || image.height > 600) {
+    // Redimensionar solo si es muy grande (máximo 2048px para alta calidad)
+    img.Image finalImage = image;
+    if (image.width > 2048 || image.height > 2048) {
       if (image.width > image.height) {
-        resized = img.copyResize(image, width: 600);
+        finalImage = img.copyResize(image, width: 2048);
       } else {
-        resized = img.copyResize(image, height: 600);
+        finalImage = img.copyResize(image, height: 2048);
       }
-    } else {
-      resized = image;
     }
 
-    // Comprimir como JPEG con calidad 90%
-    final compressedBytes = img.encodeJpg(resized, quality: 90);
+    // Comprimir como JPEG con calidad 95% (alta calidad)
+    final compressedBytes = img.encodeJpg(finalImage, quality: 95);
 
-    debugPrint('📷 [DemostradorService] Imagen original: ${bytes.length} bytes');
-    debugPrint('📷 [DemostradorService] Imagen comprimida: ${compressedBytes.length} bytes');
+    debugPrint('📷 [DemostradorService] Imagen original: $originalSize bytes (${image.width}x${image.height})');
+    debugPrint('📷 [DemostradorService] Imagen final: ${compressedBytes.length} bytes (${finalImage.width}x${finalImage.height}) - Calidad 95%');
 
     return base64Encode(compressedBytes);
   }

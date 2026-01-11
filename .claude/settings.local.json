@@ -13,7 +13,9 @@
       "Bash(curl:*)",
       "Bash(pkill:*)",
       "Bash(lsof:*)",
-      "Bash(flutter install:*)"
+      "Bash(flutter install:*)",
+      "Bash(dir \"c:\\\\Users\\\\Alexis\\\\Documents\\\\APPS\\\\metrix-cam-pop\\\\build\\\\app\\\\outputs\\\\bundle\\\\release\")",
+      "Bash(ping:*)"
     ]
   }
 }
